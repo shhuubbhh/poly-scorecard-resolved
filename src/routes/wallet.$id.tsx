@@ -139,16 +139,18 @@ function DashboardBody({ data }: { data: Analysis }) {
   );
 
   const breakdownItems = [
-    { key: "volume", label: "Volume", weight: 30, value: data.breakdown.volume },
-    { key: "activity", label: "Activity", weight: 25, value: data.breakdown.activity },
+    { key: "volume", label: "Volume", weight: 15, value: data.breakdown.volume },
+    { key: "activity", label: "Activity", weight: 20, value: data.breakdown.activity },
     { key: "diversity", label: "Diversity", weight: 20, value: data.breakdown.diversity },
     {
       key: "profitability",
       label: "Profitability",
-      weight: 15,
+      weight: 10,
       value: data.breakdown.profitability,
     },
     { key: "loyalty", label: "Loyalty", weight: 10, value: data.breakdown.loyalty },
+    { key: "rewards", label: "Liquidity & Rewards", weight: 15, value: data.breakdown.rewards },
+    { key: "balance", label: "Account Balance", weight: 10, value: data.breakdown.balance },
   ];
 
   const radarData = breakdownItems.map((b) => ({ subject: b.label, value: b.value }));
@@ -333,7 +335,34 @@ function DashboardBody({ data }: { data: Analysis }) {
             value={`${data.metrics.accountAgeDays}d`}
           />
         </div>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+
+        <h2 className="mt-8 mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          Rewards & Balance
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            icon={Coins}
+            label="Liquidity Rewards"
+            value={fmtUSD(data.metrics.liquidityRewards)}
+          />
+          <MetricCard
+            icon={Sparkles}
+            label="Maker Rebates"
+            value={data.metrics.liquidityRewards > 0 ? "Paid via Rewards" : "$0.00"}
+          />
+          <MetricCard
+            icon={Wallet}
+            label="Account Balance"
+            value={fmtUSD(data.metrics.cashBalance)}
+          />
+          <MetricCard
+            icon={Trophy}
+            label="Referral Rewards"
+            value={fmtUSD(data.metrics.referralRewards)}
+          />
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
           <div className="glass-card p-5">
             <div className="text-xs uppercase tracking-wider text-muted-foreground">
               Best market

@@ -27,8 +27,12 @@ export function computeTrading(
   let firstSeen = Infinity;
   let lastSeen = 0;
   const activeDaySet = new Set<string>();
+  let liquidityRewards = 0;
 
   for (const act of trades) {
+    if (act.type === "REWARD") {
+      liquidityRewards += act.usdcSize;
+    }
     if (act.conditionId) marketSet.add(act.conditionId);
     if (act.timestamp) {
       firstSeen = Math.min(firstSeen, act.timestamp);
@@ -117,6 +121,11 @@ export function computeTrading(
     largestTrade: Math.round(largest),
     accountAgeDays,
     activeDays: activeDaySet.size,
+    liquidityRewards: Math.round(liquidityRewards * 100) / 100,
+    makerRebate: 0,
+    takerRebate: 0,
+    referralRewards: 0,
+    cashBalance: Math.round(portfolioValue * 100) / 100,
     dailyVolume,
     categoryVolume,
   };

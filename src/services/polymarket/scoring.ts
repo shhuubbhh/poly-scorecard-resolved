@@ -16,11 +16,13 @@ const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const round = (x: number) => Math.round(Math.max(0, Math.min(100, x)));
 
 export const WEIGHTS = {
-  volume: 0.3,
-  activity: 0.25,
+  volume: 0.15,
+  activity: 0.2,
   diversity: 0.2,
-  profitability: 0.15,
+  profitability: 0.1,
   loyalty: 0.1,
+  rewards: 0.15,
+  balance: 0.1,
 } as const;
 
 export function tierFor(score: number): Tier {
@@ -43,7 +45,7 @@ function herfindahl(shares: CategoryShare[]): number {
 }
 
 export function computeBreakdown(
-  m: Pick<Metrics, "totalVolume" | "activeDays" | "accountAgeDays" | "markets" | "pnl">,
+  m: Pick<Metrics, "totalVolume" | "activeDays" | "accountAgeDays" | "markets" | "pnl" | "liquidityRewards" | "cashBalance">,
   categories: CategoryShare[],
 ): ScoreBreakdown {
   const volume = round((Math.log10(Math.max(1, m.totalVolume)) / Math.log10(250_000)) * 100);
@@ -54,7 +56,13 @@ export function computeBreakdown(
   const pnlRatio = m.totalVolume > 0 ? m.pnl / m.totalVolume : 0;
   const profitability = round(((Math.tanh(pnlRatio * 5) + 1) / 2) * 100);
   const loyalty = round(clamp01(m.accountAgeDays / 540) * 60 + clamp01(m.activeDays / 365) * 40);
-  return { volume, activity, diversity, profitability, loyalty };
+  
+  // 100 score at $500 total liquidity rewards earned
+  const rewards = round((Math.log10(Math.max(1, m.liquidityRewards)) / Math.log10(500)) * 100);
+  // 100 score at $10,000 wallet balance (USDC/portfolio value)
+  const balance = round((Math.log10(Math.max(1, m.cashBalance)) / Math.log10(10_000)) * 100);
+
+  return { volume, activity, diversity, profitability, loyalty, rewards, balance };
 }
 
 export function totalFromBreakdown(b: ScoreBreakdown): number {
@@ -63,7 +71,9 @@ export function totalFromBreakdown(b: ScoreBreakdown): number {
       b.activity * WEIGHTS.activity +
       b.diversity * WEIGHTS.diversity +
       b.profitability * WEIGHTS.profitability +
-      b.loyalty * WEIGHTS.loyalty,
+      b.loyalty * WEIGHTS.loyalty +
+      b.rewards * WEIGHTS.rewards +
+      b.balance * WEIGHTS.balance,
   );
 }
 
@@ -200,11 +210,15 @@ export function recompute(
     markets: m.markets + Math.max(0, delta.markets),
     accountAgeDays: m.accountAgeDays + Math.max(0, delta.activeDays),
     pnl: m.pnl,
+    liquidityRewards: m.liquidityRewards,
+    cashBalance: m.cashBalance,
   };
   const breakdown = computeBreakdown(next, base.categories);
   // keep profitability + loyalty floors from baseline if simulator made them dip
   breakdown.profitability = Math.max(breakdown.profitability, base.breakdown.profitability);
   breakdown.loyalty = Math.max(breakdown.loyalty, base.breakdown.loyalty);
+  breakdown.rewards = Math.max(breakdown.rewards, base.breakdown.rewards);
+  breakdown.balance = Math.max(breakdown.balance, base.breakdown.balance);
   const total = totalFromBreakdown(breakdown);
   return {
     total,

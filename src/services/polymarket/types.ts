@@ -77,6 +77,8 @@ export interface ScoreBreakdown {
   diversity: number;
   profitability: number;
   loyalty: number;
+  rewards: number;
+  balance: number;
 }
 
 export interface SybilSignal {
@@ -107,6 +109,11 @@ export interface Metrics {
   largestTrade: number;
   accountAgeDays: number;
   activeDays: number;
+  liquidityRewards: number;
+  makerRebate: number;
+  takerRebate: number;
+  referralRewards: number;
+  cashBalance: number;
 }
 
 export interface Analysis {
