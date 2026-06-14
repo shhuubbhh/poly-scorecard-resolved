@@ -112,6 +112,11 @@ export const getWalletAnalysis = createServerFn({ method: "POST" })
       largestTrade: tradingRaw.largestTrade,
       accountAgeDays,
       activeDays: tradingRaw.activeDays,
+      liquidityRewards: tradingRaw.liquidityRewards,
+      makerRebate: tradingRaw.makerRebate,
+      takerRebate: tradingRaw.takerRebate,
+      referralRewards: tradingRaw.referralRewards,
+      cashBalance: tradingRaw.cashBalance,
     };
 
     const breakdown = computeBreakdown(metrics, categories);

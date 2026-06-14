@@ -58,9 +58,9 @@ export function computeBreakdown(
   const loyalty = round(clamp01(m.accountAgeDays / 540) * 60 + clamp01(m.activeDays / 365) * 40);
   
   // 100 score at $500 total liquidity rewards earned
-  const rewards = round((Math.log10(Math.max(1, m.liquidityRewards)) / Math.log10(500)) * 100);
+  const rewards = round((Math.log10(Math.max(1, m.liquidityRewards || 0)) / Math.log10(500)) * 100);
   // 100 score at $10,000 wallet balance (USDC/portfolio value)
-  const balance = round((Math.log10(Math.max(1, m.cashBalance)) / Math.log10(10_000)) * 100);
+  const balance = round((Math.log10(Math.max(1, m.cashBalance || 0)) / Math.log10(10_000)) * 100);
 
   return { volume, activity, diversity, profitability, loyalty, rewards, balance };
 }
@@ -210,15 +210,15 @@ export function recompute(
     markets: m.markets + Math.max(0, delta.markets),
     accountAgeDays: m.accountAgeDays + Math.max(0, delta.activeDays),
     pnl: m.pnl,
-    liquidityRewards: m.liquidityRewards,
-    cashBalance: m.cashBalance,
+    liquidityRewards: m.liquidityRewards || 0,
+    cashBalance: m.cashBalance || 0,
   };
   const breakdown = computeBreakdown(next, base.categories);
   // keep profitability + loyalty floors from baseline if simulator made them dip
   breakdown.profitability = Math.max(breakdown.profitability, base.breakdown.profitability);
   breakdown.loyalty = Math.max(breakdown.loyalty, base.breakdown.loyalty);
-  breakdown.rewards = Math.max(breakdown.rewards, base.breakdown.rewards);
-  breakdown.balance = Math.max(breakdown.balance, base.breakdown.balance);
+  breakdown.rewards = Math.max(breakdown.rewards || 0, base.breakdown.rewards || 0);
+  breakdown.balance = Math.max(breakdown.balance || 0, base.breakdown.balance || 0);
   const total = totalFromBreakdown(breakdown);
   return {
     total,
