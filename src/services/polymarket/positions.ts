@@ -97,3 +97,30 @@ export async function fetchTradedMarkets(address: string): Promise<number> {
     throw err;
   }
 }
+
+export interface LeaderboardStats {
+  vol: number;
+  pnl: number;
+  rank?: string;
+}
+
+/** Official aggregate lifetime volume and PNL from Polymarket's leaderboard. */
+export async function fetchLeaderboardStats(address: string): Promise<LeaderboardStats | null> {
+  try {
+    const data = await getJson<Array<{ vol: number; pnl: number; rank?: string }>>(
+      `https://data-api.polymarket.com/v1/leaderboard?user=${address.toLowerCase()}&timePeriod=ALL`
+    );
+    if (Array.isArray(data) && data.length > 0) {
+      return {
+        vol: Number(data[0].vol) || 0,
+        pnl: Number(data[0].pnl) || 0,
+        rank: data[0].rank,
+      };
+    }
+  } catch (err) {
+    if (err instanceof NotFoundError) return null;
+    throw err;
+  }
+  return null;
+}
+

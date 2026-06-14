@@ -8,6 +8,7 @@ import {
   fetchPortfolioValue,
   fetchPositions,
   fetchTradedMarkets,
+  fetchLeaderboardStats,
 } from "@/services/polymarket/positions";
 import {
   buildCategoryShares,
@@ -60,18 +61,20 @@ export const getWalletAnalysis = createServerFn({ method: "POST" })
       warnings.push(profile.warning);
     }
 
-    const [activitySettled, positionsSettled, valueSettled, tradedSettled] =
+    const [activitySettled, positionsSettled, valueSettled, tradedSettled, leaderboardSettled] =
       await Promise.allSettled([
         fetchAllActivity(walletUsedForAnalysis),
         fetchPositions(walletUsedForAnalysis),
         fetchPortfolioValue(walletUsedForAnalysis),
         fetchTradedMarkets(walletUsedForAnalysis),
+        fetchLeaderboardStats(walletUsedForAnalysis),
       ]);
 
     const trades = activitySettled.status === "fulfilled" ? activitySettled.value : [];
     const positions = positionsSettled.status === "fulfilled" ? positionsSettled.value : [];
     const portfolioValue = valueSettled.status === "fulfilled" ? valueSettled.value : 0;
     const tradedVolume = tradedSettled.status === "fulfilled" ? tradedSettled.value : 0;
+    const leaderboard = leaderboardSettled.status === "fulfilled" ? leaderboardSettled.value : null;
 
     if (activitySettled.status === "rejected")
       warnings.push("Activity data partially unavailable.");
@@ -85,6 +88,11 @@ export const getWalletAnalysis = createServerFn({ method: "POST" })
     }
 
     const tradingRaw = computeTrading(trades, positions, tradedVolume, portfolioValue);
+    if (leaderboard) {
+      tradingRaw.totalVolume = Math.round(leaderboard.vol);
+      tradingRaw.pnl = Math.round(leaderboard.pnl);
+      tradingRaw.avgPosition = tradingRaw.totalTrades > 0 ? Math.round(leaderboard.vol / tradingRaw.totalTrades) : 0;
+    }
     const accountAgeDays = effectiveAccountAge(tradingRaw.accountAgeDays, profile);
     const categories = buildCategoryShares(tradingRaw.categoryVolume);
     const timeline = buildTimeline(tradingRaw.dailyVolume, 30);
