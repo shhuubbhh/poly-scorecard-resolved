@@ -28,14 +28,20 @@ export function computeTrading(
   let lastSeen = 0;
   const activeDaySet = new Set<string>();
 
+  for (const act of trades) {
+    if (act.conditionId) marketSet.add(act.conditionId);
+    if (act.timestamp) {
+      firstSeen = Math.min(firstSeen, act.timestamp);
+      lastSeen = Math.max(lastSeen, act.timestamp);
+      const day = dayBucket(act.timestamp);
+      activeDaySet.add(day);
+    }
+  }
+
   for (const t of tradeEvents) {
-    if (t.conditionId) marketSet.add(t.conditionId);
     largest = Math.max(largest, t.usdcSize);
     if (t.timestamp) {
-      firstSeen = Math.min(firstSeen, t.timestamp);
-      lastSeen = Math.max(lastSeen, t.timestamp);
       const day = dayBucket(t.timestamp);
-      activeDaySet.add(day);
       dailyVolume.set(day, (dailyVolume.get(day) ?? 0) + t.usdcSize);
     }
     categoryVolume.set(t.category, (categoryVolume.get(t.category) ?? 0) + t.usdcSize);

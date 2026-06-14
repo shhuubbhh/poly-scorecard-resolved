@@ -46,15 +46,15 @@ function normalize(r: RawActivity): Trade {
   };
 }
 
-/** Fetches the official public trade history, including maker and taker fills. */
+/** Fetches the official public activity history, including trades, rewards, redeems, splits, and merges. */
 export async function fetchAllActivity(address: string): Promise<Trade[]> {
   const addr = address.toLowerCase();
   const out: Trade[] = [];
   for (let offset = 0; offset < MAX_TRADES; offset += PAGE) {
-    const url = `${DATA}/trades?user=${addr}&limit=${PAGE}&offset=${offset}&takerOnly=false`;
+    const url = `${DATA}/activity?user=${addr}&limit=${PAGE}&offset=${offset}`;
     const page = await getJson<RawActivity[]>(url);
     if (!Array.isArray(page) || page.length === 0) break;
-    out.push(...page.map((trade) => normalize({ ...trade, type: "TRADE" })));
+    out.push(...page.map((item) => normalize(item)));
     if (page.length < PAGE) break;
   }
   return out;
