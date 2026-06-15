@@ -142,8 +142,23 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <div className="flex flex-col min-h-screen">
+        <div className="flex-1">
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+        </div>
+        <footer className="w-full py-4 text-center text-sm text-muted-foreground border-t border-border/20 bg-background/50 backdrop-blur-sm">
+          Developed by{" "}
+          <a
+            href="https://x.com/01Rajpurohit"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-foreground hover:underline transition-colors hover:text-primary"
+          >
+            Shubh
+          </a>
+        </footer>
+      </div>
     </QueryClientProvider>
   );
 }

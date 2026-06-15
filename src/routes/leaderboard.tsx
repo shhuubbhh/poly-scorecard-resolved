@@ -45,21 +45,21 @@ const TABS: {
   metric: keyof LeaderboardEntry;
   format: (n: number) => string;
 }[] = [
-  { value: "score", label: "Readiness", metric: "score", format: (n) => `${n}` },
-  { value: "volume", label: "Volume", metric: "volume", format: (n) => fmtUSD(n) },
-  {
-    value: "active_days",
-    label: "Most Active",
-    metric: "active_days",
-    format: (n) => `${fmtNum(n)} days`,
-  },
-  {
-    value: "diversity_score",
-    label: "Diversity",
-    metric: "diversity_score",
-    format: (n) => `${n}`,
-  },
-];
+    { value: "score", label: "Readiness", metric: "score", format: (n) => `${n}` },
+    { value: "volume", label: "Volume", metric: "volume", format: (n) => fmtUSD(n) },
+    {
+      value: "active_days",
+      label: "Most Active",
+      metric: "active_days",
+      format: (n) => `${fmtNum(n)} days`,
+    },
+    {
+      value: "diversity_score",
+      label: "Diversity",
+      metric: "diversity_score",
+      format: (n) => `${n}`,
+    },
+  ];
 
 function LeaderboardPage() {
   const [sort, setSort] = useState<Sort>("score");
@@ -91,7 +91,7 @@ function LeaderboardPage() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Anonymized snapshots of every wallet analyzed on PolyScope. Wallet addresses are hashed
-            on capture — only opt-in usernames are surfaced.
+            on capture, only opt-in usernames are surfaced.
           </p>
         </div>
 
