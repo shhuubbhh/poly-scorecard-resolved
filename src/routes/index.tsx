@@ -59,9 +59,6 @@ function Landing() {
           <a href="#scoring" className="hover:text-foreground">
             Scoring
           </a>
-          <Link to="/leaderboard" className="hover:text-foreground">
-            Leaderboard
-          </Link>
         </nav>
       </header>
 

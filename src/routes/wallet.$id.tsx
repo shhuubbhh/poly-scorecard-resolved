@@ -100,11 +100,6 @@ function DashboardHeader() {
           <span className="font-semibold tracking-tight">PolyScope</span>
         </Link>
         <div className="flex items-center gap-2">
-          <Link to="/leaderboard">
-            <Button variant="ghost" size="sm">
-              <Trophy className="mr-1 h-4 w-4" /> Leaderboard
-            </Button>
-          </Link>
           <Link to="/">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="mr-1 h-4 w-4" /> New analysis
