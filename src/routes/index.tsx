@@ -17,16 +17,16 @@ import { Disclaimer } from "@/components/Disclaimer";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "PolyScope — Polymarket Analytics & Airdrop Readiness" },
+      { title: "PolyScope - Polymarket Analytics & Airdrop Readiness" },
       {
         name: "description",
         content:
-          "Analyze any Polymarket wallet. Get an airdrop readiness score, tier ranking, optimization tips, and rewards tracking.",
+          "Volume, performance, activity, diversity, rankings, and wallet intelligence - all in one dashboard.",
       },
-      { property: "og:title", content: "PolyScope — Polymarket Analytics" },
+      { property: "og:title", content: "PolyScope - Polymarket Analytics" },
       {
         property: "og:description",
-        content: "Premium analytics dashboard for Polymarket traders.",
+        content: "Advanced analytics for Polymarket traders.",
       },
     ],
   }),
@@ -72,12 +72,12 @@ function Landing() {
             Live analytics for Polymarket wallets
           </div>
           <h1 className="text-balance text-4xl font-semibold tracking-tight md:text-6xl">
-            Know your <span className="text-gradient-primary">airdrop readiness</span>
-            <br className="hidden md:block" /> before everyone else.
+            The Analytics Layer for <span className="text-gradient-primary">Polymarket</span>
+            <br className="hidden md:block" />
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-balance text-muted-foreground">
-            PolyScope analyzes any Polymarket wallet — scoring activity, volume, diversity, and
-            loyalty — then tells you exactly how to improve.
+            PolyScope analyzes Polymarket wallet scoring activity, volume, diversity, and
+            loyalty then tells you exactly how to improve.
           </p>
 
           <form
@@ -142,7 +142,7 @@ function Landing() {
             {
               icon: Sparkles,
               title: "Optimization Plan",
-              desc: "Personalized actions to reach the next tier — with progress bars.",
+              desc: "Personalized actions to reach the next tier with progress bars.",
             },
           ].map((f) => (
             <div key={f.title} className="glass-card p-6">
