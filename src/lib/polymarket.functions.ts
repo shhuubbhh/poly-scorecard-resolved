@@ -22,7 +22,6 @@ import {
   computeBreakdown,
   detectSybil,
   percentileFromScore,
-  speculativeAllocation,
   tierFor,
   totalFromBreakdown,
 } from "@/services/polymarket/scoring";
@@ -125,7 +124,6 @@ export const getWalletAnalysis = createServerFn({ method: "POST" })
     const sybil = detectSybil(metrics, categories, trades);
     const { strengths, weaknesses } = buildStrengthsWeaknesses(breakdown);
     const recommendations = buildRecommendations(metrics, categories);
-    const allocation = speculativeAllocation(total, metrics);
 
     const analysis: Analysis = {
       input: data.input,
@@ -143,7 +141,6 @@ export const getWalletAnalysis = createServerFn({ method: "POST" })
       weaknesses,
       recommendations,
       sybil,
-      allocation,
       warnings,
       generatedAt: new Date().toISOString(),
       debug: profile.debug

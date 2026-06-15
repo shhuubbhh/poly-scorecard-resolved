@@ -182,51 +182,6 @@ export function buildRecommendations(m: Metrics, categories: CategoryShare[]): R
   ];
 }
 
-export function speculativeAllocation(total: number, m: Metrics) {
-  const base = total * 6 + Math.sqrt(Math.max(0, m.totalVolume)) * 1.2 + m.activeDays * 1.5;
-  return {
-    conservative: Math.round(base * 0.5),
-    likely: Math.round(base),
-    optimistic: Math.round(base * 1.8),
-  };
-}
-
 export function percentileFromScore(total: number): number {
   return Math.max(1, Math.min(99, Math.round(100 - total * 0.95)));
-}
-
-/**
- * Used by the what-if simulator. Recomputes the score against virtual deltas
- * without re-fetching anything from the network.
- */
-export function recompute(
-  base: Analysis,
-  delta: { volume: number; activeDays: number; markets: number },
-): { total: number; tier: Tier; allocation: Analysis["allocation"] } {
-  const m = base.metrics;
-  const next = {
-    totalVolume: m.totalVolume + Math.max(0, delta.volume),
-    activeDays: m.activeDays + Math.max(0, delta.activeDays),
-    markets: m.markets + Math.max(0, delta.markets),
-    accountAgeDays: m.accountAgeDays + Math.max(0, delta.activeDays),
-    pnl: m.pnl,
-    liquidityRewards: m.liquidityRewards || 0,
-    cashBalance: m.cashBalance || 0,
-  };
-  const breakdown = computeBreakdown(next, base.categories);
-  // keep profitability + loyalty floors from baseline if simulator made them dip
-  breakdown.profitability = Math.max(breakdown.profitability, base.breakdown.profitability);
-  breakdown.loyalty = Math.max(breakdown.loyalty, base.breakdown.loyalty);
-  breakdown.rewards = Math.max(breakdown.rewards || 0, base.breakdown.rewards || 0);
-  breakdown.balance = Math.max(breakdown.balance || 0, base.breakdown.balance || 0);
-  const total = totalFromBreakdown(breakdown);
-  return {
-    total,
-    tier: tierFor(total),
-    allocation: speculativeAllocation(total, {
-      ...m,
-      ...next,
-      avgPosition: m.avgPosition,
-    } as Metrics),
-  };
 }

@@ -28,10 +28,19 @@ export function computeTrading(
   let lastSeen = 0;
   const activeDaySet = new Set<string>();
   let liquidityRewards = 0;
+  let makerRebate = 0;
+  let takerRebate = 0;
+  let referralRewards = 0;
 
   for (const act of trades) {
     if (act.type === "REWARD") {
       liquidityRewards += act.usdcSize;
+    } else if (act.type === "MAKER_REBATE") {
+      makerRebate += act.usdcSize;
+    } else if (act.type === "TAKER_REBATE") {
+      takerRebate += act.usdcSize;
+    } else if (act.type === "REFERRAL_REWARD") {
+      referralRewards += act.usdcSize;
     }
     if (act.conditionId) marketSet.add(act.conditionId);
     if (act.timestamp) {
@@ -122,9 +131,9 @@ export function computeTrading(
     accountAgeDays,
     activeDays: activeDaySet.size,
     liquidityRewards: Math.round(liquidityRewards * 100) / 100,
-    makerRebate: 0,
-    takerRebate: 0,
-    referralRewards: 0,
+    makerRebate: Math.round(makerRebate * 100) / 100,
+    takerRebate: Math.round(takerRebate * 100) / 100,
+    referralRewards: Math.round(referralRewards * 100) / 100,
     cashBalance: Math.round(portfolioValue * 100) / 100,
     dailyVolume,
     categoryVolume,

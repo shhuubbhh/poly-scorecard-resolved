@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   Activity,
   BarChart3,
+  Coins,
   ShieldCheck,
   Sparkles,
   Target,
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Analyze any Polymarket wallet. Get an airdrop readiness score, tier ranking, optimization tips, and what-if simulations.",
+          "Analyze any Polymarket wallet. Get an airdrop readiness score, tier ranking, optimization tips, and rewards tracking.",
       },
       { property: "og:title", content: "PolyScope — Polymarket Analytics" },
       {
@@ -119,9 +120,9 @@ function Landing() {
               desc: "Weighted 100-point score across volume, activity, diversity, profitability, and loyalty.",
             },
             {
-              icon: TrendingUp,
-              title: "What-If Simulator",
-              desc: "See instantly how more volume, days, or markets shift your tier.",
+              icon: Coins,
+              title: "Rewards & Rebates",
+              desc: "Track your liquidity rewards, maker rebates, and referral earnings.",
             },
             {
               icon: ShieldCheck,

@@ -132,7 +132,6 @@ export interface Analysis {
   weaknesses: string[];
   recommendations: Recommendation[];
   sybil: SybilSignal;
-  allocation: { conservative: number; likely: number; optimistic: number };
   /** Non-fatal data-source warnings (rate limit, partial data, etc). */
   warnings: string[];
   /** ISO timestamp when this snapshot was generated. */

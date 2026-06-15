@@ -39,7 +39,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { ScoreRing } from "@/components/dashboard/ScoreRing";
 import { MetricCard } from "@/components/dashboard/MetricCard";
@@ -47,7 +46,7 @@ import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { Disclaimer } from "@/components/Disclaimer";
 import { fmtAddress, fmtNum, fmtUSD } from "@/lib/format";
 import { getWalletAnalysis } from "@/lib/polymarket.functions";
-import { nextTier, recompute } from "@/services/polymarket/scoring";
+import { nextTier } from "@/services/polymarket/scoring";
 import type { Analysis } from "@/services/polymarket/types";
 
 const walletQueryOptions = (input: string) =>
@@ -130,13 +129,7 @@ function WalletDashboard() {
 }
 
 function DashboardBody({ data }: { data: Analysis }) {
-  const [volDelta, setVolDelta] = useState(0);
-  const [dayDelta, setDayDelta] = useState(0);
-  const [mktDelta, setMktDelta] = useState(0);
-  const sim = useMemo(
-    () => recompute(data, { volume: volDelta, activeDays: dayDelta, markets: mktDelta }),
-    [data, volDelta, dayDelta, mktDelta],
-  );
+
 
   const breakdownItems = [
     { key: "volume", label: "Volume", weight: 15, value: data.breakdown.volume },
@@ -348,7 +341,7 @@ function DashboardBody({ data }: { data: Analysis }) {
           <MetricCard
             icon={Sparkles}
             label="Maker Rebates"
-            value={data.metrics.liquidityRewards > 0 ? "Paid via Rewards" : "$0.00"}
+            value={fmtUSD(data.metrics.makerRebate)}
           />
           <MetricCard
             icon={Wallet}
@@ -567,180 +560,12 @@ function DashboardBody({ data }: { data: Analysis }) {
         </div>
       </section>
 
-      {/* What-if + Allocation */}
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div className="glass-card p-6">
-          <h2 className="text-base font-semibold">What-if simulator</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Adjust below to see how your score and tier change in real time.
-          </p>
-
-          <div className="mt-6 space-y-6">
-            <SimRow
-              label="Additional volume"
-              value={`+${fmtUSD(volDelta)}`}
-              slider={
-                <Slider
-                  value={[volDelta]}
-                  max={50000}
-                  step={500}
-                  onValueChange={(v) => setVolDelta(v[0])}
-                />
-              }
-            />
-            <SimRow
-              label="Additional active days"
-              value={`+${dayDelta}`}
-              slider={
-                <Slider
-                  value={[dayDelta]}
-                  max={90}
-                  step={1}
-                  onValueChange={(v) => setDayDelta(v[0])}
-                />
-              }
-            />
-            <SimRow
-              label="Additional markets"
-              value={`+${mktDelta}`}
-              slider={
-                <Slider
-                  value={[mktDelta]}
-                  max={60}
-                  step={1}
-                  onValueChange={(v) => setMktDelta(v[0])}
-                />
-              }
-            />
-          </div>
-
-          <div className="mt-6 grid grid-cols-3 gap-3 rounded-xl border border-border bg-secondary/40 p-4">
-            <Stat label="New score" value={`${sim.total}`} delta={sim.total - data.total} />
-            <Stat label="New tier" value={`Tier ${sim.tier}`} />
-            <Stat label="Est. allocation" value={fmtNum(sim.allocation.likely)} suffix="POLY" />
-          </div>
-        </div>
-
-        <div className="glass-card p-6">
-          <h2 className="text-base font-semibold">Speculative allocation</h2>
-          <p className="mt-1 text-xs text-warning">
-            Speculative — not affiliated with Polymarket. Actual eligibility and allocation may
-            differ.
-          </p>
-          <div className="mt-6 space-y-4">
-            <AllocBar
-              label="Conservative"
-              value={data.allocation.conservative}
-              max={data.allocation.optimistic}
-              tone="muted"
-            />
-            <AllocBar
-              label="Likely"
-              value={data.allocation.likely}
-              max={data.allocation.optimistic}
-              tone="primary"
-            />
-            <AllocBar
-              label="Optimistic"
-              value={data.allocation.optimistic}
-              max={data.allocation.optimistic}
-              tone="success"
-            />
-          </div>
-          <div className="mt-6 text-xs text-muted-foreground">
-            Estimates derived from your readiness score, volume, activity, and diversity.
-          </div>
-        </div>
-      </section>
-
       <Disclaimer />
 
       <div className="pt-4 text-center text-xs text-muted-foreground">
         Updated {new Date(data.generatedAt).toLocaleString()} · Powered by Polymarket public APIs
       </div>
     </main>
-  );
-}
-
-function SimRow({
-  label,
-  value,
-  slider,
-}: {
-  label: string;
-  value: string;
-  slider: React.ReactNode;
-}) {
-  return (
-    <div>
-      <div className="mb-2 flex items-center justify-between text-sm">
-        <span>{label}</span>
-        <span className="font-mono text-muted-foreground">{value}</span>
-      </div>
-      {slider}
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  delta,
-  suffix,
-}: {
-  label: string;
-  value: string;
-  delta?: number;
-  suffix?: string;
-}) {
-  return (
-    <div>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="mt-1 text-xl font-semibold">
-        {value}
-        {suffix && <span className="ml-1 text-xs text-muted-foreground">{suffix}</span>}
-      </div>
-      {typeof delta === "number" && delta !== 0 && (
-        <div className={`text-xs ${delta > 0 ? "text-success" : "text-destructive"}`}>
-          {delta > 0 ? "+" : ""}
-          {delta}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AllocBar({
-  label,
-  value,
-  max,
-  tone,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  tone: "muted" | "primary" | "success";
-}) {
-  const pct = Math.min(100, Math.round((value / Math.max(1, max)) * 100));
-  const bg =
-    tone === "primary"
-      ? "bg-[image:var(--gradient-primary)]"
-      : tone === "success"
-        ? "bg-[image:var(--gradient-success)]"
-        : "bg-muted-foreground/40";
-  return (
-    <div>
-      <div className="mb-1.5 flex items-center justify-between text-sm">
-        <span>{label}</span>
-        <span className="font-mono">{fmtNum(value)} POLY</span>
-      </div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-secondary">
-        <div
-          className={`h-full ${bg}`}
-          style={{ width: `${pct}%`, transition: "width 400ms ease" }}
-        />
-      </div>
-    </div>
   );
 }
 
