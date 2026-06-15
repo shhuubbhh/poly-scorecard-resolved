@@ -129,6 +129,11 @@ function WalletDashboard() {
 }
 
 function DashboardBody({ data }: { data: Analysis }) {
+  const handleShareX = () => {
+    const text = `I just checked my Polymarket trading readiness on PolyScope! 🚀\n\nReadiness Score: ${data.total}/100\nTier: ${data.tier}\nRanked in the top ${data.percentile}% of analyzed wallets! 🏆\n\nCheck yours here:`;
+    const shareUrl = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`;
+    window.open(shareUrl, "_blank", "width=550,height=420");
+  };
 
 
   const breakdownItems = [
@@ -239,6 +244,19 @@ function DashboardBody({ data }: { data: Analysis }) {
                     ? "Solid foundation. A few targeted improvements can push you into the next tier."
                     : "Early-stage activity. Focus on the recommendations below to build airdrop readiness."}
             </p>
+
+            <div className="mt-6 flex flex-col sm:flex-row items-center gap-4 rounded-xl border border-border bg-secondary/15 p-4 max-w-lg">
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-foreground">Share your status on X</h4>
+                <p className="text-xs text-muted-foreground mt-0.5">Show off your Tier {data.tier} rank and score of {data.total}/100 to your followers.</p>
+              </div>
+              <Button onClick={handleShareX} size="sm" className="bg-foreground text-background hover:bg-foreground/90 shrink-0 font-medium cursor-pointer">
+                <svg className="mr-1.5 h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+                Post to X
+              </Button>
+            </div>
           </div>
           <div className="justify-self-center md:justify-self-end">
             <ScoreRing value={data.total} size={200} />

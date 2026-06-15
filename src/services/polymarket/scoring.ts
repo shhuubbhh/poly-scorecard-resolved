@@ -26,10 +26,10 @@ export const WEIGHTS = {
 } as const;
 
 export function tierFor(score: number): Tier {
-  if (score >= 88) return "S";
-  if (score >= 75) return "A";
-  if (score >= 60) return "B";
-  if (score >= 45) return "C";
+  if (score >= 85) return "S";
+  if (score >= 70) return "A";
+  if (score >= 50) return "B";
+  if (score >= 35) return "C";
   return "D";
 }
 
