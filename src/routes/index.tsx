@@ -50,7 +50,7 @@ function Landing() {
           <div className="grid h-9 w-9 place-items-center rounded-lg bg-[image:var(--gradient-primary)] glow-primary">
             <Sparkles className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="text-lg font-semibold tracking-tight">PolyScope</span>
+          <span className="text-lg font-semibold tracking-tight">PolyScore</span>
         </div>
         <nav className="hidden gap-6 text-sm text-muted-foreground md:flex">
           <a href="#features" className="hover:text-foreground">

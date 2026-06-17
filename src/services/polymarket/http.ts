@@ -47,7 +47,7 @@ export async function getJson<T>(url: string, opts: FetchOpts = {}): Promise<T> 
     try {
       const res = await fetch(url, {
         signal: ctrl.signal,
-        headers: { accept: "application/json", "user-agent": "PolyScope/1.0" },
+        headers: { accept: "application/json", "user-agent": "PolyScore/1.0" },
       });
       clearTimeout(timer);
 

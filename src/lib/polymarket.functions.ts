@@ -4,6 +4,7 @@ import { z } from "zod";
 import { resolveWallet } from "@/services/polymarket/profile";
 import { fetchAllActivity } from "@/services/polymarket/activity";
 import { MAX_TRADES } from "@/services/polymarket/activity";
+import { fetchSponsoredRewards } from "@/services/polymarket/sponsored";
 import {
   fetchPortfolioValue,
   fetchPositions,
@@ -60,13 +61,14 @@ export const getWalletAnalysis = createServerFn({ method: "POST" })
       warnings.push(profile.warning);
     }
 
-    const [activitySettled, positionsSettled, valueSettled, tradedSettled, leaderboardSettled] =
+    const [activitySettled, positionsSettled, valueSettled, tradedSettled, leaderboardSettled, sponsoredSettled] =
       await Promise.allSettled([
         fetchAllActivity(walletUsedForAnalysis),
         fetchPositions(walletUsedForAnalysis),
         fetchPortfolioValue(walletUsedForAnalysis),
         fetchTradedMarkets(walletUsedForAnalysis),
         fetchLeaderboardStats(walletUsedForAnalysis),
+        fetchSponsoredRewards(walletUsedForAnalysis),
       ]);
 
     const trades = activitySettled.status === "fulfilled" ? activitySettled.value : [];
@@ -74,12 +76,14 @@ export const getWalletAnalysis = createServerFn({ method: "POST" })
     const portfolioValue = valueSettled.status === "fulfilled" ? valueSettled.value : 0;
     const tradedVolume = tradedSettled.status === "fulfilled" ? tradedSettled.value : 0;
     const leaderboard = leaderboardSettled.status === "fulfilled" ? leaderboardSettled.value : null;
+    const sponsoredRewards = sponsoredSettled.status === "fulfilled" ? sponsoredSettled.value : 0;
 
     if (activitySettled.status === "rejected")
       warnings.push("Activity data partially unavailable.");
     if (positionsSettled.status === "rejected") warnings.push("Positions data unavailable.");
     if (valueSettled.status === "rejected") warnings.push("Portfolio value unavailable.");
     if (tradedSettled.status === "rejected") warnings.push("Lifetime market count unavailable.");
+    if (sponsoredSettled.status === "rejected") warnings.push("Sponsored rewards data unavailable.");
     if (trades.length >= MAX_TRADES) {
       warnings.push(
         "Trade history is limited to the latest 4,000 fills by Polymarket's public API.",
@@ -115,6 +119,7 @@ export const getWalletAnalysis = createServerFn({ method: "POST" })
       makerRebate: tradingRaw.makerRebate,
       takerRebate: tradingRaw.takerRebate,
       referralRewards: tradingRaw.referralRewards,
+      sponsoredRewards,
       cashBalance: tradingRaw.cashBalance,
     };
 
@@ -173,7 +178,7 @@ export const getWalletAnalysis = createServerFn({ method: "POST" })
         { onConflict: "wallet_hash" },
       );
     } catch (err) {
-      console.warn("[polyscope] leaderboard upsert failed", err);
+      console.warn("[polyscore] leaderboard upsert failed", err);
     }
 
     return analysis;

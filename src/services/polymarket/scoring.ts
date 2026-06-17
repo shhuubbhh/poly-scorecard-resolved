@@ -18,11 +18,12 @@ const round = (x: number) => Math.round(Math.max(0, Math.min(100, x)));
 export const WEIGHTS = {
   volume: 0.15,
   activity: 0.2,
-  diversity: 0.2,
+  diversity: 0.1,
   profitability: 0.1,
   loyalty: 0.1,
   rewards: 0.15,
   balance: 0.1,
+  sponsoredMakerRewards: 0.1,
 } as const;
 
 export function tierFor(score: number): Tier {
@@ -45,7 +46,7 @@ function herfindahl(shares: CategoryShare[]): number {
 }
 
 export function computeBreakdown(
-  m: Pick<Metrics, "totalVolume" | "activeDays" | "accountAgeDays" | "markets" | "pnl" | "liquidityRewards" | "cashBalance">,
+  m: Pick<Metrics, "totalVolume" | "activeDays" | "accountAgeDays" | "markets" | "pnl" | "liquidityRewards" | "cashBalance" | "sponsoredRewards" | "makerRebate">,
   categories: CategoryShare[],
 ): ScoreBreakdown {
   const volume = round((Math.log10(Math.max(1, m.totalVolume)) / Math.log10(250_000)) * 100);
@@ -61,8 +62,12 @@ export function computeBreakdown(
   const rewards = round((Math.log10(Math.max(1, m.liquidityRewards || 0)) / Math.log10(500)) * 100);
   // 100 score at $10,000 wallet balance (USDC/portfolio value)
   const balance = round((Math.log10(Math.max(1, m.cashBalance || 0)) / Math.log10(10_000)) * 100);
+  // 100 score at $500 total sponsored & maker rewards earned
+  const sponsoredMakerRewards = round(
+    (Math.log10(Math.max(1, (m.sponsoredRewards || 0) + (m.makerRebate || 0))) / Math.log10(500)) * 100
+  );
 
-  return { volume, activity, diversity, profitability, loyalty, rewards, balance };
+  return { volume, activity, diversity, profitability, loyalty, rewards, balance, sponsoredMakerRewards };
 }
 
 export function totalFromBreakdown(b: ScoreBreakdown): number {
@@ -73,7 +78,8 @@ export function totalFromBreakdown(b: ScoreBreakdown): number {
       b.profitability * WEIGHTS.profitability +
       b.loyalty * WEIGHTS.loyalty +
       b.rewards * WEIGHTS.rewards +
-      b.balance * WEIGHTS.balance,
+      b.balance * WEIGHTS.balance +
+      b.sponsoredMakerRewards * WEIGHTS.sponsoredMakerRewards,
   );
 }
 

@@ -3,7 +3,7 @@
 > Living document. Update this file whenever a new Polymarket endpoint is
 > consumed, a metric formula changes, or the Supabase schema evolves.
 > A new developer should be able to read this document alone and understand
-> exactly how every PolyScope dashboard metric is produced — without reading
+> exactly how every PolyScore dashboard metric is produced — without reading
 > the codebase.
 
 **Status:** v2 — wallet identity, trades, positions, profile, portfolio value,
@@ -137,7 +137,7 @@ Base URLs are centralized in modules under `src/services/polymarket/`.
 - **Request Parameters:**
   - `user` (wallet address, required)
   - `user` (canonical proxy wallet, required)
-  - `limit` (documented max 10,000; PolyScope requests pages of 1,000)
+  - `limit` (documented max 10,000; PolyScore requests pages of 1,000)
   - `offset` (schema says max 10,000, but the live API rejects offsets above 3,000)
   - `takerOnly=false` (include both maker and taker fills)
 - **Example Response:**

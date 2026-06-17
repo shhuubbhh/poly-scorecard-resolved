@@ -21,7 +21,7 @@ const leaderboardQueryOptions = (sort: Sort) =>
 export const Route = createFileRoute("/leaderboard")({
   head: () => ({
     meta: [
-      { title: "Leaderboard — PolyScope" },
+      { title: "Leaderboard — PolyScore" },
       {
         name: "description",
         content:
@@ -74,7 +74,7 @@ function LeaderboardPage() {
             <div className="grid h-8 w-8 place-items-center rounded-lg bg-[image:var(--gradient-primary)]">
               <Sparkles className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-semibold tracking-tight">PolyScope</span>
+            <span className="font-semibold tracking-tight">PolyScore</span>
           </Link>
           <Link to="/">
             <Button variant="ghost" size="sm">
@@ -90,7 +90,7 @@ function LeaderboardPage() {
             <Trophy className="h-5 w-5 text-warning" /> Leaderboard
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Anonymized snapshots of every wallet analyzed on PolyScope. Wallet addresses are hashed
+            Anonymized snapshots of every wallet analyzed on PolyScore. Wallet addresses are hashed
             on capture, only opt-in usernames are surfaced.
           </p>
         </div>

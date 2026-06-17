@@ -79,6 +79,7 @@ export interface ScoreBreakdown {
   loyalty: number;
   rewards: number;
   balance: number;
+  sponsoredMakerRewards: number;
 }
 
 export interface SybilSignal {
@@ -113,6 +114,7 @@ export interface Metrics {
   makerRebate: number;
   takerRebate: number;
   referralRewards: number;
+  sponsoredRewards: number;
   cashBalance: number;
 }
 

@@ -61,7 +61,7 @@ const walletQueryOptions = (input: string) =>
 export const Route = createFileRoute("/wallet/$id")({
   head: ({ params }) => ({
     meta: [
-      { title: `${decodeURIComponent(params.id)} — PolyScope` },
+      { title: `${decodeURIComponent(params.id)} — PolyScore` },
       {
         name: "description",
         content: `Live Polymarket readiness report for ${decodeURIComponent(params.id)}.`,
@@ -97,7 +97,7 @@ function DashboardHeader() {
           <div className="grid h-8 w-8 place-items-center rounded-lg bg-[image:var(--gradient-primary)]">
             <Sparkles className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="font-semibold tracking-tight">PolyScope</span>
+          <span className="font-semibold tracking-tight">PolyScore</span>
         </Link>
         <div className="flex items-center gap-2">
           <Link to="/">
@@ -125,7 +125,7 @@ function WalletDashboard() {
 
 function DashboardBody({ data }: { data: Analysis }) {
   const handleShareX = () => {
-    const text = `I just checked my Polymarket trading readiness on PolyScope! 🚀\n\nReadiness Score: ${data.total}/100\nTier: ${data.tier}\nRanked in the top ${data.percentile}% of analyzed wallets! 🏆\n\nCheck yours here:`;
+    const text = `I just checked my Polymarket trading readiness on PolyScore! 🚀\n\nReadiness Score: ${data.total}/100\nTier: ${data.tier}\nRanked in the top ${data.percentile}% of analyzed wallets! 🏆\n\nCheck yours here:`;
     const shareUrl = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`;
     window.open(shareUrl, "_blank", "width=550,height=420");
   };
@@ -134,7 +134,7 @@ function DashboardBody({ data }: { data: Analysis }) {
   const breakdownItems = [
     { key: "volume", label: "Volume", weight: 15, value: data.breakdown.volume },
     { key: "activity", label: "Activity", weight: 20, value: data.breakdown.activity },
-    { key: "diversity", label: "Diversity", weight: 20, value: data.breakdown.diversity },
+    { key: "diversity", label: "Diversity", weight: 10, value: data.breakdown.diversity },
     {
       key: "profitability",
       label: "Profitability",
@@ -144,6 +144,12 @@ function DashboardBody({ data }: { data: Analysis }) {
     { key: "loyalty", label: "Loyalty", weight: 10, value: data.breakdown.loyalty },
     { key: "rewards", label: "Liquidity & Rewards", weight: 15, value: data.breakdown.rewards },
     { key: "balance", label: "Account Balance", weight: 10, value: data.breakdown.balance },
+    {
+      key: "sponsoredMakerRewards",
+      label: "Sponsored & Maker Rewards",
+      weight: 10,
+      value: data.breakdown.sponsoredMakerRewards,
+    },
   ];
 
   const radarData = breakdownItems.map((b) => ({ subject: b.label, value: b.value }));
@@ -345,7 +351,7 @@ function DashboardBody({ data }: { data: Analysis }) {
         <h2 className="mt-8 mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Rewards & Balance
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <MetricCard
             icon={Coins}
             label="Liquidity Rewards"
@@ -355,6 +361,11 @@ function DashboardBody({ data }: { data: Analysis }) {
             icon={Sparkles}
             label="Maker Rebates"
             value={fmtUSD(data.metrics.makerRebate)}
+          />
+          <MetricCard
+            icon={Coins}
+            label="Sponsored Rewards"
+            value={fmtUSD(data.metrics.sponsoredRewards)}
           />
           <MetricCard
             icon={Wallet}
