@@ -17,13 +17,13 @@ import { Disclaimer } from "@/components/Disclaimer";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "PolyScope - Polymarket Analytics & Airdrop Readiness" },
+      { title: "PolyScore - Polymarket Analytics & Airdrop Readiness" },
       {
         name: "description",
         content:
           "Volume, performance, activity, diversity, rankings, and wallet intelligence - all in one dashboard.",
       },
-      { property: "og:title", content: "PolyScope - Polymarket Analytics" },
+      { property: "og:title", content: "PolyScore - Polymarket Analytics" },
       {
         property: "og:description",
         content: "Advanced analytics for Polymarket traders.",
@@ -73,7 +73,7 @@ function Landing() {
             <br className="hidden md:block" />
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-balance text-muted-foreground">
-            PolyScope analyzes Polymarket wallet scoring activity, volume, diversity, and
+            PolyScore analyzes Polymarket wallet scoring activity, volume, diversity, and
             loyalty then tells you exactly how to improve.
           </p>
 
@@ -157,7 +157,7 @@ function Landing() {
         <div className="mx-auto max-w-3xl px-6">
           <Disclaimer />
           <div className="mt-4 text-center text-xs text-muted-foreground">
-            PolyScope · Independent Polymarket analytics
+            PolyScore · Independent Polymarket analytics
           </div>
         </div>
       </footer>
