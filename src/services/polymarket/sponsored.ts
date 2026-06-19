@@ -1,39 +1,46 @@
 import { getJson } from "./http";
 
-interface SponsoredRewardsData {
-  wallet_rewards: {
-    address: string;
-    rewards: number;
-  }[];
+interface Sponsor {
+  address: string;
+  sponsored: number;
+  refunded: number;
+  withdrawn: number;
+  net: number;
+  rank: number;
 }
 
-let cachedRewards: Map<string, number> | null = null;
+interface SponsorsData {
+  top_sponsors: Sponsor[];
+}
+
+let cachedSponsors: Map<string, number> | null = null;
 let lastFetched = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache TTL
 
 export async function fetchSponsoredRewards(address: string): Promise<number> {
   const now = Date.now();
-  if (!cachedRewards || now - lastFetched > CACHE_TTL) {
+  if (!cachedSponsors || now - lastFetched > CACHE_TTL) {
     try {
-      const data = await getJson<SponsoredRewardsData>(
-        "https://polyrewards.fun/sponsored_rewards.json"
+      const data = await getJson<SponsorsData>(
+        "https://polyrewards.fun/sponsors.json"
       );
       const map = new Map<string, number>();
-      if (data && Array.isArray(data.wallet_rewards)) {
-        for (const item of data.wallet_rewards) {
+      if (data && Array.isArray(data.top_sponsors)) {
+        for (const item of data.top_sponsors) {
           if (item.address) {
-            map.set(item.address.toLowerCase(), Number(item.rewards) || 0);
+            map.set(item.address.toLowerCase(), Number(item.sponsored) || 0);
           }
         }
       }
-      cachedRewards = map;
+      cachedSponsors = map;
       lastFetched = now;
     } catch (err) {
-      console.warn("[sponsored] failed to fetch sponsored rewards", err);
-      if (!cachedRewards) {
-        cachedRewards = new Map();
+      console.warn("[sponsored] failed to fetch sponsors data", err);
+      if (!cachedSponsors) {
+        cachedSponsors = new Map();
       }
     }
   }
-  return cachedRewards.get(address.toLowerCase()) || 0;
+  return cachedSponsors.get(address.toLowerCase()) || 0;
 }
+

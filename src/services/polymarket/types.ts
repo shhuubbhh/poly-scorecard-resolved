@@ -57,7 +57,7 @@ export interface Profile {
   /** Unix seconds the wallet first appeared on Polymarket. May be undefined. */
   createdAt?: number;
   warning?: string;
-  debug?: unknown;
+  debug?: any;
 }
 
 export interface CategoryShare {
@@ -138,5 +138,5 @@ export interface Analysis {
   warnings: string[];
   /** ISO timestamp when this snapshot was generated. */
   generatedAt: string;
-  debug?: unknown;
+  debug?: any;
 }

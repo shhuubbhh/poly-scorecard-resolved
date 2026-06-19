@@ -134,6 +134,7 @@ export function computeTrading(
     makerRebate: Math.round(makerRebate * 100) / 100,
     takerRebate: Math.round(takerRebate * 100) / 100,
     referralRewards: Math.round(referralRewards * 100) / 100,
+    sponsoredRewards: 0,
     cashBalance: Math.round(portfolioValue * 100) / 100,
     dailyVolume,
     categoryVolume,

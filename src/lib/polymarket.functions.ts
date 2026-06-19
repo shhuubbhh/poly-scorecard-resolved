@@ -83,7 +83,7 @@ export const getWalletAnalysis = createServerFn({ method: "POST" })
     if (positionsSettled.status === "rejected") warnings.push("Positions data unavailable.");
     if (valueSettled.status === "rejected") warnings.push("Portfolio value unavailable.");
     if (tradedSettled.status === "rejected") warnings.push("Lifetime market count unavailable.");
-    if (sponsoredSettled.status === "rejected") warnings.push("Sponsored rewards data unavailable.");
+    if (sponsoredSettled.status === "rejected") warnings.push("Sponsored dashboard data unavailable.");
     if (trades.length >= MAX_TRADES) {
       warnings.push(
         "Trade history is limited to the latest 4,000 fills by Polymarket's public API.",

@@ -146,7 +146,7 @@ function DashboardBody({ data }: { data: Analysis }) {
     { key: "balance", label: "Account Balance", weight: 10, value: data.breakdown.balance },
     {
       key: "sponsoredMakerRewards",
-      label: "Sponsored & Maker Rewards",
+      label: "Sponsored Provided & Maker Rewards",
       weight: 10,
       value: data.breakdown.sponsoredMakerRewards,
     },
@@ -364,7 +364,7 @@ function DashboardBody({ data }: { data: Analysis }) {
           />
           <MetricCard
             icon={Coins}
-            label="Sponsored Rewards"
+            label="Sponsored Provided"
             value={fmtUSD(data.metrics.sponsoredRewards)}
           />
           <MetricCard

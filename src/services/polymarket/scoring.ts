@@ -62,7 +62,7 @@ export function computeBreakdown(
   const rewards = round((Math.log10(Math.max(1, m.liquidityRewards || 0)) / Math.log10(500)) * 100);
   // 100 score at $10,000 wallet balance (USDC/portfolio value)
   const balance = round((Math.log10(Math.max(1, m.cashBalance || 0)) / Math.log10(10_000)) * 100);
-  // 100 score at $500 total sponsored & maker rewards earned
+  // 100 score at $500 total sponsored provided & maker rewards earned
   const sponsoredMakerRewards = round(
     (Math.log10(Math.max(1, (m.sponsoredRewards || 0) + (m.makerRebate || 0))) / Math.log10(500)) * 100
   );
