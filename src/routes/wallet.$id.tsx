@@ -126,7 +126,7 @@ function WalletDashboard() {
 function DashboardBody({ data }: { data: Analysis }) {
   const handleShareX = () => {
     const text = `I just checked my Polymarket trading readiness on PolyScore! 🚀\n\nReadiness Score: ${data.total}/100\nTier: ${data.tier}\nRanked in the top ${data.percentile}% of analyzed wallets! 🏆\n\nCheck yours here:`;
-    const shareUrl = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`;
+    const shareUrl = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent("https://poly-score.vercel.app/")}`;
     window.open(shareUrl, "_blank", "width=550,height=420");
   };
 
