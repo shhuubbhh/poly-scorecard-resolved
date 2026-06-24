@@ -10,6 +10,7 @@ import {
   fetchPositions,
   fetchTradedMarkets,
   fetchLeaderboardStats,
+  fetchOnChainCashBalance,
 } from "@/services/polymarket/positions";
 import {
   buildCategoryShares,
@@ -61,7 +62,7 @@ export const getWalletAnalysis = createServerFn({ method: "POST" })
       warnings.push(profile.warning);
     }
 
-    const [activitySettled, positionsSettled, valueSettled, tradedSettled, leaderboardSettled, sponsoredSettled] =
+    const [activitySettled, positionsSettled, valueSettled, tradedSettled, leaderboardSettled, sponsoredSettled, cashSettled] =
       await Promise.allSettled([
         fetchAllActivity(walletUsedForAnalysis),
         fetchPositions(walletUsedForAnalysis),
@@ -69,14 +70,16 @@ export const getWalletAnalysis = createServerFn({ method: "POST" })
         fetchTradedMarkets(walletUsedForAnalysis),
         fetchLeaderboardStats(walletUsedForAnalysis),
         fetchSponsoredRewards(walletUsedForAnalysis),
+        fetchOnChainCashBalance(walletUsedForAnalysis),
       ]);
 
     const trades = activitySettled.status === "fulfilled" ? activitySettled.value : [];
     const positions = positionsSettled.status === "fulfilled" ? positionsSettled.value : [];
-    const portfolioValue = valueSettled.status === "fulfilled" ? valueSettled.value : 0;
+    const positionsValue = valueSettled.status === "fulfilled" ? valueSettled.value : 0;
     const tradedVolume = tradedSettled.status === "fulfilled" ? tradedSettled.value : 0;
     const leaderboard = leaderboardSettled.status === "fulfilled" ? leaderboardSettled.value : null;
     const sponsoredRewards = sponsoredSettled.status === "fulfilled" ? sponsoredSettled.value : 0;
+    const cashBalance = cashSettled.status === "fulfilled" ? cashSettled.value : 0;
 
     if (activitySettled.status === "rejected")
       warnings.push("Activity data partially unavailable.");
@@ -84,13 +87,14 @@ export const getWalletAnalysis = createServerFn({ method: "POST" })
     if (valueSettled.status === "rejected") warnings.push("Portfolio value unavailable.");
     if (tradedSettled.status === "rejected") warnings.push("Lifetime market count unavailable.");
     if (sponsoredSettled.status === "rejected") warnings.push("Sponsored dashboard data unavailable.");
+    if (cashSettled.status === "rejected") warnings.push("On-chain cash balance unavailable.");
     if (trades.length >= MAX_TRADES) {
       warnings.push(
         "Trade history is limited to the latest 4,000 fills by Polymarket's public API.",
       );
     }
 
-    const tradingRaw = computeTrading(trades, positions, tradedVolume, portfolioValue);
+    const tradingRaw = computeTrading(trades, positions, tradedVolume, positionsValue, cashBalance);
     if (leaderboard) {
       tradingRaw.totalVolume = Math.round(leaderboard.vol);
       tradingRaw.pnl = Math.round(leaderboard.pnl);
@@ -173,6 +177,9 @@ export const getWalletAnalysis = createServerFn({ method: "POST" })
           active_days: metrics.activeDays,
           diversity_score: breakdown.diversity,
           activity_score: breakdown.activity,
+          maker_rebate: metrics.makerRebate,
+          liquidity_rewards: metrics.liquidityRewards,
+          sponsored_rewards: metrics.sponsoredRewards,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "wallet_hash" },
@@ -184,7 +191,7 @@ export const getWalletAnalysis = createServerFn({ method: "POST" })
     return analysis;
   });
 
-const SORT_FIELDS = ["score", "volume", "active_days", "diversity_score"] as const;
+const SORT_FIELDS = ["score", "volume", "active_days", "diversity_score", "maker_rebate", "liquidity_rewards", "sponsored_rewards"] as const;
 type SortField = (typeof SORT_FIELDS)[number];
 
 export interface LeaderboardEntry {
@@ -198,6 +205,9 @@ export interface LeaderboardEntry {
   active_days: number;
   diversity_score: number;
   activity_score: number;
+  maker_rebate: number;
+  liquidity_rewards: number;
+  sponsored_rewards: number;
 }
 
 export const getLeaderboard = createServerFn({ method: "GET" })
@@ -214,10 +224,54 @@ export const getLeaderboard = createServerFn({ method: "GET" })
     const { data: rows, error } = await supabaseAdmin
       .from("wallet_snapshots")
       .select(
-        "wallet_hash, username, score, tier, volume, trades, markets, active_days, diversity_score, activity_score",
+        "wallet_hash, username, score, tier, volume, trades, markets, active_days, diversity_score, activity_score, maker_rebate, liquidity_rewards, sponsored_rewards",
       )
       .order(data.sort, { ascending: false })
       .limit(data.limit);
     if (error) throw new Error(error.message);
     return (rows ?? []) as LeaderboardEntry[];
+  });
+
+export interface SearchResult {
+  entry: LeaderboardEntry;
+  ranks: Record<SortField, number>;
+}
+
+export const searchLeaderboard = createServerFn({ method: "POST" })
+  .inputValidator((input: { query: string }) =>
+    z.object({ query: z.string().min(1).max(100) }).parse(input),
+  )
+  .handler(async ({ data }): Promise<SearchResult | null> => {
+    const q = data.query.trim().toLowerCase();
+    if (!q) return null;
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 1. Find the entry by username or wallet_hash
+    let queryBuilder = supabaseAdmin.from("wallet_snapshots").select("*");
+    if (q.startsWith("0x") && q.length === 42) {
+      const hash = await sha256Hex(q);
+      queryBuilder = queryBuilder.eq("wallet_hash", hash);
+    } else {
+      const usernameClean = q.replace(/^@/, "");
+      queryBuilder = queryBuilder.ilike("username", usernameClean);
+    }
+
+    const { data: rows, error } = await queryBuilder.limit(1);
+    if (error || !rows || rows.length === 0) return null;
+    const entry = rows[0] as LeaderboardEntry;
+
+    // 2. Calculate ranks for all sort fields
+    const ranks = {} as Record<SortField, number>;
+    for (const field of SORT_FIELDS) {
+      const val = entry[field];
+      const { count } = await supabaseAdmin
+        .from("wallet_snapshots")
+        .select("*", { count: "exact", head: true })
+        .gt(field, val);
+      
+      ranks[field] = (count ?? 0) + 1;
+    }
+
+    return { entry, ranks };
   });

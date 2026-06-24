@@ -9,7 +9,8 @@ export function computeTrading(
   trades: Trade[],
   positions: Position[],
   tradedMarkets: number,
-  portfolioValue: number,
+  positionsValue: number,
+  cashBalance: number,
 ): Metrics & { dailyVolume: Map<string, number>; categoryVolume: Map<string, number> } {
   const tradeEvents = trades.filter((t) => t.type === "TRADE" && t.usdcSize > 0);
 
@@ -115,6 +116,8 @@ export function computeTrading(
     return Math.max(0, Math.round((nowSec - first) / DAY));
   })();
 
+  const portfolioValue = positionsValue + cashBalance;
+
   return {
     totalVolume: Math.round(totalVolume),
     totalTrades,
@@ -124,7 +127,7 @@ export function computeTrading(
     pnl: Math.round(pnl),
     realizedPnl: Math.round(realizedPnl),
     unrealizedPnl: Math.round(unrealizedPnl),
-    portfolioValue: Math.round(portfolioValue),
+    portfolioValue: Math.round(portfolioValue * 100) / 100,
     bestMarket: best.title === "—" ? "—" : best.title,
     worstMarket: worst.title === "—" || worst.pnl === best.pnl ? "—" : worst.title,
     largestTrade: Math.round(largest),
@@ -135,7 +138,7 @@ export function computeTrading(
     takerRebate: Math.round(takerRebate * 100) / 100,
     referralRewards: Math.round(referralRewards * 100) / 100,
     sponsoredRewards: 0,
-    cashBalance: Math.round(portfolioValue * 100) / 100,
+    cashBalance: Math.round(cashBalance * 100) / 100,
     dailyVolume,
     categoryVolume,
   };

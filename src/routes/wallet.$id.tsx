@@ -370,7 +370,7 @@ function DashboardBody({ data }: { data: Analysis }) {
           <MetricCard
             icon={Wallet}
             label="Account Balance"
-            value={fmtUSD(data.metrics.cashBalance)}
+            value={fmtUSD(data.metrics.portfolioValue)}
           />
           <MetricCard
             icon={Trophy}

@@ -124,3 +124,50 @@ export async function fetchLeaderboardStats(address: string): Promise<Leaderboar
   return null;
 }
 
+/** Fetches native USDC and USDC.e balances on Polygon for the address. */
+export async function fetchOnChainCashBalance(address: string): Promise<number> {
+  const usdce = "0x2791bca1f2de4661ed88a30c99a7a9449aa84174";
+  const usdcNative = "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359";
+  const rpcUrls = [
+    "https://rpc.ankr.com/polygon",
+    "https://1rpc.io/matic",
+    "https://polygon-mainnet.public.blastapi.io",
+    "https://polygon.llamarpc.com"
+  ];
+
+  const cleanAddress = address.toLowerCase().replace("0x", "");
+  const paddedAddress = cleanAddress.padStart(64, "0");
+  const callData = "0x70a08231" + paddedAddress;
+
+  const getBalanceForToken = async (rpcUrl: string, token: string): Promise<number> => {
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_call",
+        params: [{ to: token, data: callData }, "latest"]
+      })
+    });
+    if (!res.ok) throw new Error("RPC request failed");
+    const json = await res.json();
+    if (json.error) throw new Error(json.error.message);
+    const balanceBI = BigInt(json.result || "0x0");
+    return Number(balanceBI) / 1e6;
+  };
+
+  for (const rpcUrl of rpcUrls) {
+    try {
+      const [usdceBal, nativeBal] = await Promise.all([
+        getBalanceForToken(rpcUrl, usdce),
+        getBalanceForToken(rpcUrl, usdcNative)
+      ]);
+      return usdceBal + nativeBal;
+    } catch (err) {
+      console.warn(`[polyscore] RPC balance check failed on ${rpcUrl}:`, err);
+    }
+  }
+  return 0; // Fallback to 0 if all RPCs fail
+}
+

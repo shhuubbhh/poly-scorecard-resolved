@@ -21,6 +21,9 @@ export type Database = {
           username: string | null;
           volume: number;
           wallet_hash: string;
+          maker_rebate: number;
+          liquidity_rewards: number;
+          sponsored_rewards: number;
         };
         Insert: {
           active_days?: number;
@@ -34,6 +37,9 @@ export type Database = {
           username?: string | null;
           volume?: number;
           wallet_hash: string;
+          maker_rebate?: number;
+          liquidity_rewards?: number;
+          sponsored_rewards?: number;
         };
         Update: {
           active_days?: number;
@@ -47,6 +53,9 @@ export type Database = {
           username?: string | null;
           volume?: number;
           wallet_hash?: string;
+          maker_rebate?: number;
+          liquidity_rewards?: number;
+          sponsored_rewards?: number;
         };
         Relationships: [];
       };
