@@ -115,7 +115,7 @@ export async function performWalletAnalysis(input: string): Promise<Analysis> {
     largestTrade: tradingRaw.largestTrade,
     accountAgeDays,
     activeDays: tradingRaw.activeDays,
-    liquidityRewards: tradingRaw.liquidityRewards,
+    liquidityRewards: Math.max(tradingRaw.liquidityRewards, sponsoredRewards),
     makerRebate: tradingRaw.makerRebate,
     takerRebate: tradingRaw.takerRebate,
     referralRewards: tradingRaw.referralRewards,
@@ -212,6 +212,7 @@ export interface LeaderboardEntry {
   maker_rebate: number;
   liquidity_rewards: number;
   sponsored_rewards: number;
+  updated_at: string;
 }
 
 export const getLeaderboard = createServerFn({ method: "GET" })
@@ -228,7 +229,7 @@ export const getLeaderboard = createServerFn({ method: "GET" })
     const { data: rows, error } = await supabaseAdmin
       .from("wallet_snapshots")
       .select(
-        "wallet_hash, username, score, tier, volume, trades, markets, active_days, diversity_score, activity_score, maker_rebate, liquidity_rewards, sponsored_rewards",
+        "wallet_hash, username, score, tier, volume, trades, markets, active_days, diversity_score, activity_score, maker_rebate, liquidity_rewards, sponsored_rewards, updated_at",
       )
       .order(data.sort, { ascending: false })
       .limit(data.limit);
@@ -285,6 +286,31 @@ export const searchLeaderboard = createServerFn({ method: "POST" })
       } catch (err) {
         console.error(`[polyscore] Dynamic analysis for "${q}" failed:`, err);
         return null;
+      }
+    } else {
+      // Check if the snapshot is older than 5 minutes, and if so, trigger a re-analysis to update it
+      const entry = rows[0] as LeaderboardEntry;
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60_000);
+      const updatedAt = new Date(entry.updated_at || 0);
+      if (updatedAt < fiveMinutesAgo) {
+        try {
+          console.log(`[polyscore] Snapshot for "${q}" is older than 5 minutes, triggering dynamic re-analysis to update it...`);
+          const analysis = await performWalletAnalysis(entry.username || q);
+          
+          // Re-query the database to get the updated entry
+          const hashToQuery = entry.wallet_hash;
+          const { data: newRows } = await supabaseAdmin
+            .from("wallet_snapshots")
+            .select("*")
+            .eq("wallet_hash", hashToQuery)
+            .limit(1);
+            
+          if (newRows && newRows.length > 0) {
+            rows = newRows;
+          }
+        } catch (err) {
+          console.error(`[polyscore] Dynamic re-analysis for "${q}" failed:`, err);
+        }
       }
     }
 
