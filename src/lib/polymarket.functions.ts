@@ -38,157 +38,161 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
+export async function performWalletAnalysis(input: string): Promise<Analysis> {
+  const warnings: string[] = [];
+
+  let profile;
+  try {
+    profile = await resolveWallet(input);
+  } catch (err) {
+    if (err instanceof NotFoundError) {
+      throw new Error(`USER_NOT_FOUND:${input}`);
+    }
+    throw err;
+  }
+
+  const address = profile.address;
+  const walletUsedForAnalysis = profile.proxyWallet || address;
+
+  if (profile.warning) {
+    warnings.push(profile.warning);
+  }
+
+  const [activitySettled, positionsSettled, valueSettled, tradedSettled, leaderboardSettled, sponsoredSettled, cashSettled] =
+    await Promise.allSettled([
+      fetchAllActivity(walletUsedForAnalysis),
+      fetchPositions(walletUsedForAnalysis),
+      fetchPortfolioValue(walletUsedForAnalysis),
+      fetchTradedMarkets(walletUsedForAnalysis),
+      fetchLeaderboardStats(walletUsedForAnalysis),
+      fetchSponsoredRewards(walletUsedForAnalysis),
+      fetchOnChainCashBalance(walletUsedForAnalysis),
+    ]);
+
+  const trades = activitySettled.status === "fulfilled" ? activitySettled.value : [];
+  const positions = positionsSettled.status === "fulfilled" ? positionsSettled.value : [];
+  const positionsValue = valueSettled.status === "fulfilled" ? valueSettled.value : 0;
+  const tradedVolume = tradedSettled.status === "fulfilled" ? tradedSettled.value : 0;
+  const leaderboard = leaderboardSettled.status === "fulfilled" ? leaderboardSettled.value : null;
+  const sponsoredRewards = sponsoredSettled.status === "fulfilled" ? sponsoredSettled.value : 0;
+  const cashBalance = cashSettled.status === "fulfilled" ? cashSettled.value : 0;
+
+  if (activitySettled.status === "rejected")
+    warnings.push("Activity data partially unavailable.");
+  if (positionsSettled.status === "rejected") warnings.push("Positions data unavailable.");
+  if (valueSettled.status === "rejected") warnings.push("Portfolio value unavailable.");
+  if (tradedSettled.status === "rejected") warnings.push("Lifetime market count unavailable.");
+  if (sponsoredSettled.status === "rejected") warnings.push("Sponsored dashboard data unavailable.");
+  if (cashSettled.status === "rejected") warnings.push("On-chain cash balance unavailable.");
+  if (trades.length >= MAX_TRADES) {
+    warnings.push(
+      "Trade history is limited to the latest 4,000 fills by Polymarket's public API.",
+    );
+  }
+
+  const tradingRaw = computeTrading(trades, positions, tradedVolume, positionsValue, cashBalance);
+  if (leaderboard) {
+    tradingRaw.totalVolume = Math.round(leaderboard.vol);
+    tradingRaw.pnl = Math.round(leaderboard.pnl);
+    tradingRaw.avgPosition = tradingRaw.totalTrades > 0 ? Math.round(leaderboard.vol / tradingRaw.totalTrades) : 0;
+  }
+  const accountAgeDays = effectiveAccountAge(tradingRaw.accountAgeDays, profile);
+  const categories = buildCategoryShares(tradingRaw.categoryVolume);
+  const timeline = buildTimeline(tradingRaw.dailyVolume, 30);
+
+  const metrics = {
+    totalVolume: tradingRaw.totalVolume,
+    totalTrades: tradingRaw.totalTrades,
+    markets: tradingRaw.markets,
+    avgPosition: tradingRaw.avgPosition,
+    winRate: tradingRaw.winRate,
+    pnl: tradingRaw.pnl,
+    realizedPnl: tradingRaw.realizedPnl,
+    unrealizedPnl: tradingRaw.unrealizedPnl,
+    portfolioValue: tradingRaw.portfolioValue,
+    bestMarket: tradingRaw.bestMarket,
+    worstMarket: tradingRaw.worstMarket,
+    largestTrade: tradingRaw.largestTrade,
+    accountAgeDays,
+    activeDays: tradingRaw.activeDays,
+    liquidityRewards: tradingRaw.liquidityRewards,
+    makerRebate: tradingRaw.makerRebate,
+    takerRebate: tradingRaw.takerRebate,
+    referralRewards: tradingRaw.referralRewards,
+    sponsoredRewards,
+    cashBalance: tradingRaw.cashBalance,
+  };
+
+  const breakdown = computeBreakdown(metrics, categories);
+  const total = totalFromBreakdown(breakdown);
+  const tier = tierFor(total);
+  const sybil = detectSybil(metrics, categories, trades);
+  const { strengths, weaknesses } = buildStrengthsWeaknesses(breakdown);
+  const recommendations = buildRecommendations(metrics, categories);
+
+  const analysis: Analysis = {
+    input,
+    username: profile.displayUsername || profile.username || address.slice(0, 6),
+    wallet: address,
+    pfpUrl: profile.pfpUrl,
+    total,
+    tier,
+    percentile: percentileFromScore(total),
+    breakdown,
+    metrics,
+    timeline,
+    categories,
+    strengths,
+    weaknesses,
+    recommendations,
+    sybil,
+    warnings,
+    generatedAt: new Date().toISOString(),
+    debug: profile.debug
+      ? {
+          ...profile.debug,
+          marketsCount: metrics.markets,
+          tradesCount: metrics.totalTrades,
+        }
+      : undefined,
+  };
+
+  // Persist anonymized snapshot for leaderboard (best-effort).
+  try {
+    const hash = await sha256Hex(address);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("wallet_snapshots").upsert(
+      {
+        wallet_hash: hash,
+        username: profile.username ?? null,
+        score: total,
+        tier,
+        volume: metrics.totalVolume,
+        trades: metrics.totalTrades,
+        markets: metrics.markets,
+        active_days: metrics.activeDays,
+        diversity_score: breakdown.diversity,
+        activity_score: breakdown.activity,
+        maker_rebate: metrics.makerRebate,
+        liquidity_rewards: metrics.liquidityRewards,
+        sponsored_rewards: metrics.sponsoredRewards,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "wallet_hash" },
+    );
+  } catch (err) {
+    console.warn("[polyscore] leaderboard upsert failed", err);
+  }
+
+  return analysis;
+}
+
 export const getWalletAnalysis = createServerFn({ method: "POST" })
   .inputValidator((input: { input: string }) =>
     z.object({ input: z.string().min(1).max(100) }).parse(input),
   )
   .handler(async ({ data }): Promise<Analysis> => {
-    const warnings: string[] = [];
-
-    let profile;
-    try {
-      profile = await resolveWallet(data.input);
-    } catch (err) {
-      if (err instanceof NotFoundError) {
-        throw new Error(`USER_NOT_FOUND:${data.input}`);
-      }
-      throw err;
-    }
-
-    const address = profile.address;
-    const walletUsedForAnalysis = profile.proxyWallet || address;
-
-    if (profile.warning) {
-      warnings.push(profile.warning);
-    }
-
-    const [activitySettled, positionsSettled, valueSettled, tradedSettled, leaderboardSettled, sponsoredSettled, cashSettled] =
-      await Promise.allSettled([
-        fetchAllActivity(walletUsedForAnalysis),
-        fetchPositions(walletUsedForAnalysis),
-        fetchPortfolioValue(walletUsedForAnalysis),
-        fetchTradedMarkets(walletUsedForAnalysis),
-        fetchLeaderboardStats(walletUsedForAnalysis),
-        fetchSponsoredRewards(walletUsedForAnalysis),
-        fetchOnChainCashBalance(walletUsedForAnalysis),
-      ]);
-
-    const trades = activitySettled.status === "fulfilled" ? activitySettled.value : [];
-    const positions = positionsSettled.status === "fulfilled" ? positionsSettled.value : [];
-    const positionsValue = valueSettled.status === "fulfilled" ? valueSettled.value : 0;
-    const tradedVolume = tradedSettled.status === "fulfilled" ? tradedSettled.value : 0;
-    const leaderboard = leaderboardSettled.status === "fulfilled" ? leaderboardSettled.value : null;
-    const sponsoredRewards = sponsoredSettled.status === "fulfilled" ? sponsoredSettled.value : 0;
-    const cashBalance = cashSettled.status === "fulfilled" ? cashSettled.value : 0;
-
-    if (activitySettled.status === "rejected")
-      warnings.push("Activity data partially unavailable.");
-    if (positionsSettled.status === "rejected") warnings.push("Positions data unavailable.");
-    if (valueSettled.status === "rejected") warnings.push("Portfolio value unavailable.");
-    if (tradedSettled.status === "rejected") warnings.push("Lifetime market count unavailable.");
-    if (sponsoredSettled.status === "rejected") warnings.push("Sponsored dashboard data unavailable.");
-    if (cashSettled.status === "rejected") warnings.push("On-chain cash balance unavailable.");
-    if (trades.length >= MAX_TRADES) {
-      warnings.push(
-        "Trade history is limited to the latest 4,000 fills by Polymarket's public API.",
-      );
-    }
-
-    const tradingRaw = computeTrading(trades, positions, tradedVolume, positionsValue, cashBalance);
-    if (leaderboard) {
-      tradingRaw.totalVolume = Math.round(leaderboard.vol);
-      tradingRaw.pnl = Math.round(leaderboard.pnl);
-      tradingRaw.avgPosition = tradingRaw.totalTrades > 0 ? Math.round(leaderboard.vol / tradingRaw.totalTrades) : 0;
-    }
-    const accountAgeDays = effectiveAccountAge(tradingRaw.accountAgeDays, profile);
-    const categories = buildCategoryShares(tradingRaw.categoryVolume);
-    const timeline = buildTimeline(tradingRaw.dailyVolume, 30);
-
-    const metrics = {
-      totalVolume: tradingRaw.totalVolume,
-      totalTrades: tradingRaw.totalTrades,
-      markets: tradingRaw.markets,
-      avgPosition: tradingRaw.avgPosition,
-      winRate: tradingRaw.winRate,
-      pnl: tradingRaw.pnl,
-      realizedPnl: tradingRaw.realizedPnl,
-      unrealizedPnl: tradingRaw.unrealizedPnl,
-      portfolioValue: tradingRaw.portfolioValue,
-      bestMarket: tradingRaw.bestMarket,
-      worstMarket: tradingRaw.worstMarket,
-      largestTrade: tradingRaw.largestTrade,
-      accountAgeDays,
-      activeDays: tradingRaw.activeDays,
-      liquidityRewards: tradingRaw.liquidityRewards,
-      makerRebate: tradingRaw.makerRebate,
-      takerRebate: tradingRaw.takerRebate,
-      referralRewards: tradingRaw.referralRewards,
-      sponsoredRewards,
-      cashBalance: tradingRaw.cashBalance,
-    };
-
-    const breakdown = computeBreakdown(metrics, categories);
-    const total = totalFromBreakdown(breakdown);
-    const tier = tierFor(total);
-    const sybil = detectSybil(metrics, categories, trades);
-    const { strengths, weaknesses } = buildStrengthsWeaknesses(breakdown);
-    const recommendations = buildRecommendations(metrics, categories);
-
-    const analysis: Analysis = {
-      input: data.input,
-      username: profile.displayUsername || profile.username || address.slice(0, 6),
-      wallet: address,
-      pfpUrl: profile.pfpUrl,
-      total,
-      tier,
-      percentile: percentileFromScore(total),
-      breakdown,
-      metrics,
-      timeline,
-      categories,
-      strengths,
-      weaknesses,
-      recommendations,
-      sybil,
-      warnings,
-      generatedAt: new Date().toISOString(),
-      debug: profile.debug
-        ? {
-            ...profile.debug,
-            marketsCount: metrics.markets,
-            tradesCount: metrics.totalTrades,
-          }
-        : undefined,
-    };
-
-    // Persist anonymized snapshot for leaderboard (best-effort).
-    try {
-      const hash = await sha256Hex(address);
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      await supabaseAdmin.from("wallet_snapshots").upsert(
-        {
-          wallet_hash: hash,
-          username: profile.username ?? null,
-          score: total,
-          tier,
-          volume: metrics.totalVolume,
-          trades: metrics.totalTrades,
-          markets: metrics.markets,
-          active_days: metrics.activeDays,
-          diversity_score: breakdown.diversity,
-          activity_score: breakdown.activity,
-          maker_rebate: metrics.makerRebate,
-          liquidity_rewards: metrics.liquidityRewards,
-          sponsored_rewards: metrics.sponsoredRewards,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "wallet_hash" },
-      );
-    } catch (err) {
-      console.warn("[polyscore] leaderboard upsert failed", err);
-    }
-
-    return analysis;
+    return performWalletAnalysis(data.input);
   });
 
 const SORT_FIELDS = ["score", "volume", "active_days", "diversity_score", "maker_rebate", "liquidity_rewards", "sponsored_rewards"] as const;
@@ -249,15 +253,41 @@ export const searchLeaderboard = createServerFn({ method: "POST" })
 
     // 1. Find the entry by username or wallet_hash
     let queryBuilder = supabaseAdmin.from("wallet_snapshots").select("*");
-    if (q.startsWith("0x") && q.length === 42) {
-      const hash = await sha256Hex(q);
-      queryBuilder = queryBuilder.eq("wallet_hash", hash);
+    let isAddressSearch = q.startsWith("0x") && q.length === 42;
+    let resolvedHash = "";
+    if (isAddressSearch) {
+      resolvedHash = await sha256Hex(q);
+      queryBuilder = queryBuilder.eq("wallet_hash", resolvedHash);
     } else {
       const usernameClean = q.replace(/^@/, "");
       queryBuilder = queryBuilder.ilike("username", usernameClean);
     }
 
-    const { data: rows, error } = await queryBuilder.limit(1);
+    let { data: rows, error } = await queryBuilder.limit(1);
+
+    // If not found in database, automatically perform wallet analysis to create the entry!
+    if (!rows || rows.length === 0) {
+      try {
+        console.log(`[polyscore] User "${q}" not found in snapshot DB, triggering dynamic on-the-fly analysis...`);
+        const analysis = await performWalletAnalysis(q);
+        
+        // Re-query the database to get the newly upserted entry
+        const hashToQuery = isAddressSearch ? resolvedHash : await sha256Hex(analysis.wallet);
+        const { data: newRows } = await supabaseAdmin
+          .from("wallet_snapshots")
+          .select("*")
+          .eq("wallet_hash", hashToQuery)
+          .limit(1);
+          
+        if (newRows && newRows.length > 0) {
+          rows = newRows;
+        }
+      } catch (err) {
+        console.error(`[polyscore] Dynamic analysis for "${q}" failed:`, err);
+        return null;
+      }
+    }
+
     if (error || !rows || rows.length === 0) return null;
     const entry = rows[0] as LeaderboardEntry;
 

@@ -211,18 +211,13 @@ function LeaderboardPage() {
         )}
 
         {searched && !searchResult && !isSearching && (
-          <div className="glass-card p-5 border border-warning/40 bg-warning/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="glass-card p-5 border border-destructive/40 bg-destructive/5 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
-              <h4 className="text-sm font-semibold text-warning">No snapshot found</h4>
+              <h4 className="text-sm font-semibold text-destructive">No Polymarket user found</h4>
               <p className="text-xs text-muted-foreground mt-0.5">
-                This wallet/username has not been analyzed on PolyScore yet. Run the analysis first to add it.
+                We couldn't resolve "{searchQuery}" to a valid Polymarket wallet address or username. Double-check and try again.
               </p>
             </div>
-            <Link to={`/wallet/${encodeURIComponent(searchQuery)}`}>
-              <Button size="sm" className="bg-warning text-warning-foreground hover:bg-warning/90 cursor-pointer">
-                Analyze "{searchQuery}"
-              </Button>
-            </Link>
           </div>
         )}
 
