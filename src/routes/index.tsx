@@ -52,14 +52,21 @@ function Landing() {
           </div>
           <span className="text-lg font-semibold tracking-tight">PolyScore</span>
         </div>
-        <nav className="hidden gap-6 text-sm text-muted-foreground md:flex">
-          <a href="#features" className="hover:text-foreground">
-            Features
-          </a>
-          <a href="#scoring" className="hover:text-foreground">
-            Scoring
-          </a>
-        </nav>
+        <div className="flex items-center gap-4">
+          <nav className="hidden gap-6 text-sm text-muted-foreground md:flex">
+            <a href="#features" className="hover:text-foreground">
+              Features
+            </a>
+            <Link to="/leaderboard" className="hover:text-foreground">
+              Leaderboard
+            </Link>
+          </nav>
+          <Link to="/leaderboard" className="md:hidden">
+            <Button variant="ghost" size="sm">
+              Leaderboard
+            </Button>
+          </Link>
+        </div>
       </header>
 
       <main className="mx-auto max-w-7xl px-6 pb-24 pt-10 md:pt-20">
