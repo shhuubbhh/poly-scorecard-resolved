@@ -1,6 +1,6 @@
 import { getJson } from "./http";
 
-interface Sponsor {
+export interface Sponsor {
   address: string;
   sponsored: number;
   refunded: number;
@@ -43,4 +43,31 @@ export async function fetchSponsoredRewards(address: string): Promise<number> {
   }
   return cachedSponsors.get(address.toLowerCase()) || 0;
 }
+
+let cachedSponsorsList: Sponsor[] | null = null;
+let lastFetchedList = 0;
+
+export async function fetchAllSponsors(): Promise<Sponsor[]> {
+  const now = Date.now();
+  if (!cachedSponsorsList || now - lastFetchedList > CACHE_TTL) {
+    try {
+      const data = await getJson<SponsorsData>(
+        "https://polyrewards.fun/sponsors.json"
+      );
+      if (data && Array.isArray(data.top_sponsors)) {
+        cachedSponsorsList = data.top_sponsors;
+        lastFetchedList = now;
+      } else {
+        cachedSponsorsList = [];
+      }
+    } catch (err) {
+      console.warn("[sponsored] failed to fetch all sponsors", err);
+      if (!cachedSponsorsList) {
+        cachedSponsorsList = [];
+      }
+    }
+  }
+  return cachedSponsorsList;
+}
+
 

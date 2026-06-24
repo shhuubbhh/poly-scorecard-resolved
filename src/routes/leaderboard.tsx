@@ -10,12 +10,12 @@ import { Disclaimer } from "@/components/Disclaimer";
 import { fmtNum, fmtUSD } from "@/lib/format";
 import { getLeaderboard, searchLeaderboard, type LeaderboardEntry, type SearchResult } from "@/lib/polymarket.functions";
 
-type Sort = "score" | "volume" | "maker_rebate" | "liquidity_rewards" | "sponsored_rewards" | "active_days" | "diversity_score";
+type Sort = "maker_rebate" | "liquidity_rewards" | "sponsored_rewards";
 
-const leaderboardQueryOptions = (sort: Sort) =>
+const leaderboardQueryOptions = (sort: Sort, page: number) =>
   queryOptions({
-    queryKey: ["leaderboard", sort],
-    queryFn: () => getLeaderboard({ data: { sort, limit: 25 } }),
+    queryKey: ["leaderboard", sort, page],
+    queryFn: () => getLeaderboard({ data: { sort, page, limit: 100 } }),
     staleTime: 60_000,
   });
 
@@ -26,11 +26,11 @@ export const Route = createFileRoute("/leaderboard")({
       {
         name: "description",
         content:
-          "Top Polymarket wallets ranked by airdrop readiness, volume, activity, and diversity.",
+          "Top Polymarket wallets ranked by Maker Rebates, Liquidity Provided, and Sponsored Rewards.",
       },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(leaderboardQueryOptions("score")),
+  loader: ({ context }) => context.queryClient.ensureQueryData(leaderboardQueryOptions("maker_rebate", 1)),
   errorComponent: ({ error }) => (
     <div className="min-h-screen p-6 text-sm text-muted-foreground">
       Couldn't load leaderboard: {error.message}
@@ -46,28 +46,15 @@ const TABS: {
   metric: keyof LeaderboardEntry;
   format: (n: number) => string;
 }[] = [
-  { value: "score", label: "Readiness", metric: "score", format: (n) => `${n}` },
-  { value: "volume", label: "Volume", metric: "volume", format: (n) => fmtUSD(n) },
   { value: "maker_rebate", label: "Maker Rebate", metric: "maker_rebate", format: (n) => fmtUSD(n) },
   { value: "liquidity_rewards", label: "Liquidity Provided", metric: "liquidity_rewards", format: (n) => fmtUSD(n) },
   { value: "sponsored_rewards", label: "Sponsored Provided", metric: "sponsored_rewards", format: (n) => fmtUSD(n) },
-  {
-    value: "active_days",
-    label: "Most Active",
-    metric: "active_days",
-    format: (n) => `${fmtNum(n)} days`,
-  },
-  {
-    value: "diversity_score",
-    label: "Diversity",
-    metric: "diversity_score",
-    format: (n) => `${n}`,
-  },
 ];
 
 function LeaderboardPage() {
-  const [sort, setSort] = useState<Sort>("score");
-  const { data } = useSuspenseQuery(leaderboardQueryOptions(sort));
+  const [sort, setSort] = useState<Sort>("maker_rebate");
+  const [page, setPage] = useState(1);
+  const { data } = useSuspenseQuery(leaderboardQueryOptions(sort, page));
   const tab = TABS.find((t) => t.value === sort)!;
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -101,6 +88,11 @@ function LeaderboardPage() {
     }
   };
 
+  const handleTabChange = (v: string) => {
+    setSort(v as Sort);
+    setPage(1);
+  };
+
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur">
@@ -126,8 +118,8 @@ function LeaderboardPage() {
               <Trophy className="h-5 w-5 text-warning" /> Leaderboard
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Anonymized snapshots of every wallet analyzed on PolyScore. Wallet addresses are hashed
-              on capture, only opt-in usernames are surfaced.
+              Global Polymarket rankings for Maker Rebates, Liquidity Provided, and Sponsored Rewards. 
+              Search any user to retrieve their exact global position and rewards.
             </p>
           </div>
 
@@ -159,7 +151,7 @@ function LeaderboardPage() {
               <div>
                 <h3 className="text-xs uppercase tracking-wider text-primary font-semibold">User Found</h3>
                 <div className="font-medium text-base mt-1">
-                  {searchResult.entry.username ? `@${searchResult.entry.username}` : "Anonymous"}
+                  {searchResult.entry.username ? `@${searchResult.entry.username}` : (searchResult.entry.address ? `${searchResult.entry.address.slice(0, 6)}...${searchResult.entry.address.slice(-4)}` : "Anonymous")}
                 </div>
                 <div className="font-mono text-[10px] text-muted-foreground mt-0.5">
                   Hash: {searchResult.entry.wallet_hash}
@@ -170,19 +162,7 @@ function LeaderboardPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 border-t border-border/40 text-xs">
-              <div>
-                <div className="text-muted-foreground">Readiness Rank</div>
-                <div className="font-semibold font-mono text-sm mt-0.5">
-                  #{searchResult.ranks.score} <span className="text-[10px] text-muted-foreground font-normal">({searchResult.entry.score})</span>
-                </div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Volume Rank</div>
-                <div className="font-semibold font-mono text-sm mt-0.5">
-                  #{searchResult.ranks.volume} <span className="text-[10px] text-muted-foreground font-normal">({fmtUSD(searchResult.entry.volume)})</span>
-                </div>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-border/40 text-xs">
               <div>
                 <div className="text-muted-foreground">Maker Rebate Rank</div>
                 <div className="font-semibold font-mono text-sm mt-0.5">
@@ -193,6 +173,12 @@ function LeaderboardPage() {
                 <div className="text-muted-foreground">Liquidity Provided Rank</div>
                 <div className="font-semibold font-mono text-sm mt-0.5">
                   #{searchResult.ranks.liquidity_rewards} <span className="text-[10px] text-muted-foreground font-normal font-mono">({fmtUSD(searchResult.entry.liquidity_rewards)})</span>
+                </div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">Sponsored Provided Rank</div>
+                <div className="font-semibold font-mono text-sm mt-0.5">
+                  #{searchResult.ranks.sponsored_rewards} <span className="text-[10px] text-muted-foreground font-normal font-mono">({fmtUSD(searchResult.entry.sponsored_rewards)})</span>
                 </div>
               </div>
             </div>
@@ -221,7 +207,7 @@ function LeaderboardPage() {
           </div>
         )}
 
-        <Tabs value={sort} onValueChange={(v) => setSort(v as Sort)}>
+        <Tabs value={sort} onValueChange={handleTabChange}>
           <TabsList className="flex flex-wrap h-auto gap-1 bg-transparent p-0">
             {TABS.map((t) => (
               <TabsTrigger
@@ -238,7 +224,7 @@ function LeaderboardPage() {
         <div className="glass-card overflow-hidden">
           {data.length === 0 ? (
             <div className="p-12 text-center text-sm text-muted-foreground">
-              No wallets analyzed yet. Be the first — run an analysis from the home page.
+              No entries found.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -254,10 +240,10 @@ function LeaderboardPage() {
                 <tbody>
                   {data.map((row, i) => (
                     <tr key={row.wallet_hash} className="border-b border-border/40 last:border-0 hover:bg-secondary/10 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{i + 1}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{(page - 1) * 100 + i + 1}</td>
                       <td className="px-4 py-3">
                         <div className="font-medium">
-                          {row.username ? `@${row.username}` : "Anonymous"}
+                          {row.username ? `@${row.username}` : (row.address ? `${row.address.slice(0, 6)}...${row.address.slice(-4)}` : "Anonymous")}
                         </div>
                         <div className="font-mono text-[10px] text-muted-foreground">
                           {row.wallet_hash.slice(0, 10)}…
@@ -277,6 +263,28 @@ function LeaderboardPage() {
               </table>
             </div>
           )}
+        </div>
+
+        <div className="flex items-center justify-between pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="cursor-pointer"
+          >
+            Previous
+          </Button>
+          <span className="text-xs text-muted-foreground">Page {page}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => p + 1)}
+            disabled={data.length < 100}
+            className="cursor-pointer"
+          >
+            Next
+          </Button>
         </div>
 
         <Disclaimer />
