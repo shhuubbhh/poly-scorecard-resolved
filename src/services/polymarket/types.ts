@@ -116,6 +116,8 @@ export interface Metrics {
   referralRewards: number;
   sponsoredRewards: number;
   cashBalance: number;
+  feesPaid?: number;
+  totalAssets?: number;
 }
 
 export interface Analysis {

@@ -351,10 +351,16 @@ function DashboardBody({ data }: { data: Analysis }) {
         <h2 className="mt-8 mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Rewards & Balance
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            icon={Wallet}
+            label="Total Assets"
+            value={fmtUSD(data.metrics.totalAssets ?? data.metrics.portfolioValue)}
+            hint={`Cash: ${fmtUSD(data.metrics.cashBalance)} · Positions: ${fmtUSD(Math.max(0, (data.metrics.totalAssets ?? data.metrics.portfolioValue) - data.metrics.cashBalance))}`}
+          />
           <MetricCard
             icon={Coins}
-            label="Liquidity Rewards"
+            label="Liquidity Rewards (LP)"
             value={fmtUSD(data.metrics.liquidityRewards)}
           />
           <MetricCard
@@ -369,8 +375,18 @@ function DashboardBody({ data }: { data: Analysis }) {
           />
           <MetricCard
             icon={Wallet}
-            label="Account Balance"
-            value={fmtUSD(data.metrics.portfolioValue)}
+            label="USDC Cash Balance"
+            value={fmtUSD(data.metrics.cashBalance)}
+          />
+          <MetricCard
+            icon={Layers}
+            label="Open Bets (Positions)"
+            value={fmtUSD(Math.max(0, (data.metrics.totalAssets ?? data.metrics.portfolioValue) - data.metrics.cashBalance))}
+          />
+          <MetricCard
+            icon={Coins}
+            label="Fees Paid"
+            value={fmtUSD(data.metrics.feesPaid ?? 0)}
           />
           <MetricCard
             icon={Trophy}

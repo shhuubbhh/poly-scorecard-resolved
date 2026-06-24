@@ -101,27 +101,53 @@ export async function performWalletAnalysis(input: string): Promise<Analysis> {
   const categories = buildCategoryShares(tradingRaw.categoryVolume);
   const timeline = buildTimeline(tradingRaw.dailyVolume, 30);
 
+  // Query BetMoar stats for enrichment
+  let betMoarData: any = null;
+  try {
+    const res = await fetch(`https://www.betmoar.fun/api/profile-stats?user=${walletUsedForAnalysis}`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      }
+    });
+    if (res.ok) {
+      betMoarData = await res.json();
+    }
+  } catch (err) {
+    console.warn("[polyscore] failed to fetch BetMoar stats", err);
+  }
+
+  const feesPaid = betMoarData?.feeSummary?.totalFeesPaid ?? 0;
+  const lpRewards = betMoarData?.stats?.lpRewards ?? Math.max(tradingRaw.liquidityRewards, sponsoredRewards);
+  const makerRebate = betMoarData?.stats?.makerRebates ?? tradingRaw.makerRebate;
+  const sponsored = betMoarData?.stats?.sponsoredRewards ?? sponsoredRewards;
+  
+  const rawPortfolioVal = betMoarData?.stats?.portfolioValue ?? tradingRaw.portfolioValue;
+  const rawCashBalance = betMoarData?.stats?.usdcBalance ?? tradingRaw.cashBalance;
+  const totalAssets = rawPortfolioVal + rawCashBalance;
+
   const metrics = {
-    totalVolume: tradingRaw.totalVolume,
+    totalVolume: betMoarData?.stats?.totalVolume ?? tradingRaw.totalVolume,
     totalTrades: tradingRaw.totalTrades,
     markets: tradingRaw.markets,
     avgPosition: tradingRaw.avgPosition,
     winRate: tradingRaw.winRate,
-    pnl: tradingRaw.pnl,
+    pnl: betMoarData?.stats?.overallPNL ?? tradingRaw.pnl,
     realizedPnl: tradingRaw.realizedPnl,
     unrealizedPnl: tradingRaw.unrealizedPnl,
-    portfolioValue: tradingRaw.portfolioValue,
+    portfolioValue: totalAssets, // Account Balance card displays total assets!
     bestMarket: tradingRaw.bestMarket,
     worstMarket: tradingRaw.worstMarket,
     largestTrade: tradingRaw.largestTrade,
     accountAgeDays,
     activeDays: tradingRaw.activeDays,
-    liquidityRewards: Math.max(tradingRaw.liquidityRewards, sponsoredRewards),
-    makerRebate: tradingRaw.makerRebate,
+    liquidityRewards: lpRewards,
+    makerRebate: makerRebate,
     takerRebate: tradingRaw.takerRebate,
     referralRewards: tradingRaw.referralRewards,
-    sponsoredRewards,
-    cashBalance: tradingRaw.cashBalance,
+    sponsoredRewards: sponsored,
+    cashBalance: rawCashBalance,
+    feesPaid,
+    totalAssets
   };
 
   const breakdown = computeBreakdown(metrics, categories);
