@@ -310,11 +310,17 @@ export const getLeaderboard = createServerFn({ method: "GET" })
 
     // Default db pagination fallback (for maker_rebate, score, volume, active_days, diversity_score)
     const offset = (page - 1) * limit;
-    const { data: rows, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("wallet_snapshots")
       .select(
         "wallet_hash, username, score, tier, volume, trades, markets, active_days, diversity_score, activity_score, maker_rebate, liquidity_rewards, sponsored_rewards, updated_at",
-      )
+      );
+
+    if (sort === "maker_rebate") {
+      query = query.gte("maker_rebate", 1);
+    }
+
+    const { data: rows, error } = await query
       .order(sort, { ascending: false })
       .range(offset, offset + limit - 1);
 

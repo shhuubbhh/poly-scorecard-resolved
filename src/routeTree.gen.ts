@@ -13,6 +13,7 @@ import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WalletIdRouteImport } from './routes/wallet.$id'
 import { Route as DebugProfileSearchRouteImport } from './routes/debug/profile-search'
+import { Route as ApiCronScanMakerRebatesRouteImport } from './routes/api.cron.scan-maker-rebates'
 
 const LeaderboardRoute = LeaderboardRouteImport.update({
   id: '/leaderboard',
@@ -34,18 +35,25 @@ const DebugProfileSearchRoute = DebugProfileSearchRouteImport.update({
   path: '/debug/profile-search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronScanMakerRebatesRoute = ApiCronScanMakerRebatesRouteImport.update({
+  id: '/api/cron/scan-maker-rebates',
+  path: '/api/cron/scan-maker-rebates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/leaderboard': typeof LeaderboardRoute
   '/debug/profile-search': typeof DebugProfileSearchRoute
   '/wallet/$id': typeof WalletIdRoute
+  '/api/cron/scan-maker-rebates': typeof ApiCronScanMakerRebatesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/leaderboard': typeof LeaderboardRoute
   '/debug/profile-search': typeof DebugProfileSearchRoute
   '/wallet/$id': typeof WalletIdRoute
+  '/api/cron/scan-maker-rebates': typeof ApiCronScanMakerRebatesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,18 +61,30 @@ export interface FileRoutesById {
   '/leaderboard': typeof LeaderboardRoute
   '/debug/profile-search': typeof DebugProfileSearchRoute
   '/wallet/$id': typeof WalletIdRoute
+  '/api/cron/scan-maker-rebates': typeof ApiCronScanMakerRebatesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/leaderboard' | '/debug/profile-search' | '/wallet/$id'
+  fullPaths:
+    | '/'
+    | '/leaderboard'
+    | '/debug/profile-search'
+    | '/wallet/$id'
+    | '/api/cron/scan-maker-rebates'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/leaderboard' | '/debug/profile-search' | '/wallet/$id'
+  to:
+    | '/'
+    | '/leaderboard'
+    | '/debug/profile-search'
+    | '/wallet/$id'
+    | '/api/cron/scan-maker-rebates'
   id:
     | '__root__'
     | '/'
     | '/leaderboard'
     | '/debug/profile-search'
     | '/wallet/$id'
+    | '/api/cron/scan-maker-rebates'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -72,6 +92,7 @@ export interface RootRouteChildren {
   LeaderboardRoute: typeof LeaderboardRoute
   DebugProfileSearchRoute: typeof DebugProfileSearchRoute
   WalletIdRoute: typeof WalletIdRoute
+  ApiCronScanMakerRebatesRoute: typeof ApiCronScanMakerRebatesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -104,6 +125,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DebugProfileSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/scan-maker-rebates': {
+      id: '/api/cron/scan-maker-rebates'
+      path: '/api/cron/scan-maker-rebates'
+      fullPath: '/api/cron/scan-maker-rebates'
+      preLoaderRoute: typeof ApiCronScanMakerRebatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -112,6 +140,7 @@ const rootRouteChildren: RootRouteChildren = {
   LeaderboardRoute: LeaderboardRoute,
   DebugProfileSearchRoute: DebugProfileSearchRoute,
   WalletIdRoute: WalletIdRoute,
+  ApiCronScanMakerRebatesRoute: ApiCronScanMakerRebatesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
