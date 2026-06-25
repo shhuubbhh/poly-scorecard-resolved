@@ -257,16 +257,12 @@ export const getLeaderboard = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { sort, page, limit } = data;
 
-    if (sort === "liquidity_rewards" || sort === "sponsored_rewards") {
+    if (sort === "sponsored_rewards") {
       const sponsors = await fetchAllSponsors();
       
       // Sort list by the chosen metric
       const sortedSponsors = [...sponsors].sort((a, b) => {
-        if (sort === "liquidity_rewards") {
-          return (b.net || 0) - (a.net || 0);
-        } else {
-          return (b.sponsored || 0) - (a.sponsored || 0);
-        }
+        return (b.sponsored || 0) - (a.sponsored || 0);
       });
 
       // Slice the list based on page/limit
@@ -323,8 +319,8 @@ export const getLeaderboard = createServerFn({ method: "GET" })
             diversity_score: dbRow?.diversity_score ?? 0,
             activity_score: dbRow?.activity_score ?? 0,
             maker_rebate: dbRow?.maker_rebate ?? 0,
-            liquidity_rewards: sort === "liquidity_rewards" ? item.net : (dbRow?.liquidity_rewards ?? item.net),
-            sponsored_rewards: sort === "sponsored_rewards" ? item.sponsored : (dbRow?.sponsored_rewards ?? item.sponsored),
+            liquidity_rewards: dbRow?.liquidity_rewards ?? 0,
+            sponsored_rewards: item.sponsored,
             updated_at: dbRow?.updated_at ?? new Date().toISOString(),
             address,
           };
@@ -334,7 +330,7 @@ export const getLeaderboard = createServerFn({ method: "GET" })
       return entries;
     }
 
-    // Default db pagination fallback (for maker_rebate, score, volume, active_days, diversity_score)
+    // Default db pagination fallback (for maker_rebate, liquidity_rewards, score, volume, active_days, diversity_score)
     const offset = (page - 1) * limit;
     let query = supabaseAdmin
       .from("wallet_snapshots")
@@ -344,6 +340,8 @@ export const getLeaderboard = createServerFn({ method: "GET" })
 
     if (sort === "maker_rebate") {
       query = query.gte("maker_rebate", 1);
+    } else if (sort === "liquidity_rewards") {
+      query = query.gte("liquidity_rewards", 1);
     }
 
     const { data: rows, error } = await query
@@ -451,15 +449,9 @@ export const searchLeaderboard = createServerFn({ method: "POST" })
       }
     }
 
-    // 2. Fetch global sponsors list to calculate exact global ranks for LP & Sponsored rewards
+    // 2. Fetch global sponsors list to calculate exact global rank for Sponsored rewards
     const sponsors = await fetchAllSponsors();
     const cleanAddr = resolvedAddress.toLowerCase();
-
-    // Calculate LP rewards rank
-    const lpSorted = [...sponsors].sort((a, b) => (b.net || 0) - (a.net || 0));
-    const lpIndex = lpSorted.findIndex((s) => s.address.toLowerCase() === cleanAddr);
-    const lpRank = lpIndex !== -1 ? lpIndex + 1 : sponsors.length + 1;
-    const lpVal = lpIndex !== -1 ? lpSorted[lpIndex].net : 0;
 
     // Calculate Sponsored rewards rank
     const spSorted = [...sponsors].sort((a, b) => (b.sponsored || 0) - (a.sponsored || 0));
@@ -468,7 +460,6 @@ export const searchLeaderboard = createServerFn({ method: "POST" })
     const spVal = spIndex !== -1 ? spSorted[spIndex].sponsored : 0;
 
     // Override the DB values with the live global ones
-    entry.liquidity_rewards = lpVal;
     entry.sponsored_rewards = spVal;
     if (resolvedAddress) {
       entry.address = resolvedAddress;
@@ -477,9 +468,7 @@ export const searchLeaderboard = createServerFn({ method: "POST" })
     // 3. Calculate ranks for all sort fields
     const ranks = {} as Record<SortField, number>;
     for (const field of SORT_FIELDS) {
-      if (field === "liquidity_rewards") {
-        ranks[field] = lpRank;
-      } else if (field === "sponsored_rewards") {
+      if (field === "sponsored_rewards") {
         ranks[field] = spRank;
       } else {
         const val = entry[field];
